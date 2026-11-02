@@ -34,7 +34,7 @@ def _parse_action(response: str) -> tuple[str, str] | None:
 
 
 def run_single_react_agent(db_path: str, question: str, llm_client=None) -> dict:
-    """Investigate a question through a bounded Groq Thought/Action loop."""
+    """Investigate a question through a bounded Thought/Action loop."""
     del llm_client
     schema = search_schema("full schema")
     max_steps = _load_limits()
@@ -50,7 +50,8 @@ Action Input: <one read-only SQLite SELECT query>
 
 You may use Action: search_schema with Action Input: full schema if needed.
 After observations, either take another action or return:
-FINAL ANSWER: <concise root cause, entity, and exact dollar impact>
+FINAL ANSWER: <concise verified root cause, affected entity, and explanation>
+Do not calculate or report dollar amounts.
 Never use INSERT, UPDATE, DELETE, PRAGMA, or multiple SQL statements.
 """
     transcript = f"User question: {question}"

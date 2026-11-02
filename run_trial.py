@@ -5,14 +5,13 @@ from pathlib import Path
 import pandas as pd
 
 from injector import OUTPUT_DIR
-from run_evaluation import _run_with_progress, ensure_scenarios
+from evaluations import LABELS_PATH, _run_with_progress, ensure_scenarios
 from src.system_multi import run_multi_agent_team
 from src.system_oneshot import run_oneshot_sql
 from src.system_react import run_single_react_agent
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-LABELS_PATH = OUTPUT_DIR / "labels.json"
 RESULTS_PATH = PROJECT_ROOT / "trial_results_1_3.csv"
 RECOVERY_RESULTS_PATH = PROJECT_ROOT / "trial_results_1_3_recovery.csv"
 TRIAL_SCENARIO_IDS = {1, 2, 3}

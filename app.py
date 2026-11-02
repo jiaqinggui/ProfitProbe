@@ -5,7 +5,7 @@ import streamlit as st
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-RESULTS_PATH = PROJECT_ROOT / "evaluation_results.csv"
+RESULTS_PATH = PROJECT_ROOT / "evaluations_results.csv"
 
 
 def _value(row: pd.Series, column: str, default: object = "") -> object:
@@ -19,14 +19,14 @@ st.write("Compare the one-shot, Single ReAct, and Multi-Agent results for each s
 
 if not RESULTS_PATH.exists():
     st.info(
-        "No evaluation results found. Run `python run_evaluation.py` first to create "
-        "evaluation_results.csv."
+        "No evaluation results found. Run `python evaluations.py` first to create "
+        "evaluations_results.csv."
     )
     st.stop()
 
 results = pd.read_csv(RESULTS_PATH)
 if results.empty or "scenario_id" not in results.columns:
-    st.error("evaluation_results.csv is empty or missing the scenario_id column.")
+    st.error(f"{RESULTS_PATH.name} is empty or missing the scenario_id column.")
     st.stop()
 
 scenario_ids = results["scenario_id"].dropna().astype(int).tolist()

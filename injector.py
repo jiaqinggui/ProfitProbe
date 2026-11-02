@@ -10,8 +10,13 @@ OUTPUT_DIR = PROJECT_ROOT / "scenarios"
 
 TARGET_WINDOWS = [
     ("2017-W32", "2017-08-07", "2017-08-14"),
+    ("2017-W33", "2017-08-14", "2017-08-21"),
+    ("2017-W34", "2017-08-21", "2017-08-28"),
     ("2017-W35", "2017-08-28", "2017-09-04"),
     ("2017-W40", "2017-10-02", "2017-10-09"),
+    ("2017-W41", "2017-10-09", "2017-10-16"),
+    ("2017-W42", "2017-10-16", "2017-10-23"),
+    ("2018-W09", "2018-02-26", "2018-03-05"),
     ("2018-W10", "2018-03-05", "2018-03-12"),
     ("2018-W15", "2018-04-09", "2018-04-16"),
 ]
@@ -21,6 +26,11 @@ CATEGORIES = [
     "sports_leisure",
     "furniture_decor",
     "computers_accessories",
+    "toys",
+    "auto",
+    "housewares",
+    "baby",
+    "stationery",
 ]
 
 
@@ -84,7 +94,7 @@ def generate_scenarios() -> None:
     labels: list[dict] = []
     scenario_id = 1
 
-    # 1. Wrong discount code: five localized category/week anomalies.
+    # 1. Wrong discount code: ten localized category/week anomalies.
     for iteration, (target_week, start, end) in enumerate(TARGET_WINDOWS):
         db_path = get_db_copy(scenario_id)
         category = CATEGORIES[iteration]
@@ -142,7 +152,7 @@ def generate_scenarios() -> None:
         )
         scenario_id += 1
 
-    # 2. Shipping delay: five seller/week anomalies.
+    # 2. Shipping delay: ten seller/week anomalies.
     for iteration, (target_week, start, end) in enumerate(TARGET_WINDOWS):
         db_path = get_db_copy(scenario_id)
         with sqlite3.connect(db_path) as conn:
@@ -340,7 +350,18 @@ def generate_scenarios() -> None:
         scenario_id += 1
 
     # 6. Lost channel/stockout: remove order items paid through a channel.
-    payment_types = ["boleto", "voucher", "boleto", "voucher", "boleto"]
+    payment_types = [
+        "boleto",
+        "voucher",
+        "boleto",
+        "voucher",
+        "boleto",
+        "voucher",
+        "boleto",
+        "voucher",
+        "boleto",
+        "voucher",
+    ]
     for iteration, (target_week, start, end) in enumerate(TARGET_WINDOWS):
         db_path = get_db_copy(scenario_id)
         payment_type = payment_types[iteration]
@@ -468,8 +489,8 @@ def generate_scenarios() -> None:
         )
         scenario_id += 1
 
-    if len(labels) != 40:
-        raise RuntimeError(f"Expected 40 scenario labels, generated {len(labels)}.")
+    if len(labels) != 80:
+        raise RuntimeError(f"Expected 80 scenario labels, generated {len(labels)}.")
     if sum(label["has_distractor"] for label in labels) != 10:
         raise RuntimeError("Expected exactly 10 scenarios with distractors.")
 

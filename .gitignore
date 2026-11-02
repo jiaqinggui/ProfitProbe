@@ -1,7 +1,7 @@
 .env
 olist_base.db
 scenarios/
-evaluation_results.csv
+evaluations_results*.csv
 trial_results_*.csv
 __pycache__/
 *.py[cod]

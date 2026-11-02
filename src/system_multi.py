@@ -15,7 +15,7 @@ def _parse_hypotheses(response: str) -> list[str]:
 
 
 def run_multi_agent_team(db_path: str, question: str, llm_client=None) -> dict:
-    """Run Groq planner/analyst/auditor agents and a Gemini reporter."""
+    """Run the configured planner, analyst, auditor, and reporter agents."""
     del llm_client
     max_audit_rounds = int(load_agent_limits()["max_audit_rounds"])
     schema = search_schema("full schema")
@@ -64,9 +64,9 @@ Return one hypothesis per line, with no introduction.
 
         auditor_prompt = f"""
 You are an independent auditor for a data investigation.
-Determine whether the analyst's conclusion is supported by the SQL results,
-whether the root cause and entity match the question, and whether the dollar
-impact calculation is correct.
+Determine whether the analyst's conclusion is supported by the SQL results and
+whether the root cause and affected entity match the question. Do not require
+or evaluate a dollar-impact calculation.
 Return exactly:
 VERDICT: PASS
 FEEDBACK: <brief justification>
@@ -100,8 +100,9 @@ SQL observations: {state['observations']}
 
     reporter_prompt = """
 You are a senior manager receiving a database investigation report.
-Write a concise plain-text report stating the verified root cause, entity,
-exact dollar impact, and whether the auditor passed it. Do not invent facts.
+Write a concise plain-text report stating the verified root cause, affected
+entity, supporting explanation, and whether the auditor passed it. Do not
+calculate or report dollar amounts. Do not invent facts.
 If the audit failed or evidence is incomplete, clearly say the conclusion is
 unverified.
 """

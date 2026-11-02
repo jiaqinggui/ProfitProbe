@@ -1,57 +1,61 @@
 {
   "roles": {
     "oneshot": {
-      "provider": "gemini",
-      "model_name": "gemini-3.8-flash",
+      "provider": "groq",
+      "model_name": "qwen/qwen3.8-27b",
       "temperature": 0.0,
       "top_p": 0.1,
       "frequency_penalty": 0.3,
       "stop_sequences": [],
-      "max_tokens": 300
+      "max_tokens": 400
     },
     "analyst": {
-      "provider": "gemini",
-      "model_name": "gemini-3.8-flash",
+      "provider": "groq",
+      "model_name": "qwen/qwen3.8-27b",
       "temperature": 0.0,
       "top_p": 0.1,
       "frequency_penalty": 0.3,
       "stop_sequences": [],
-      "max_tokens": 300
+      "max_tokens": 400
     },
     "planner": {
-      "provider": "gemini",
-      "model_name": "gemini-3.8-flash",
+      "provider": "groq",
+      "model_name": "qwen/qwen3.8-27b",
       "temperature": 0.0,
       "top_p": 0.1,
       "frequency_penalty": 0.3,
       "stop_sequences": [],
-      "max_tokens": 300
+      "max_tokens": 400
     },
     "auditor": {
-      "provider": "gemini",
-      "model_name": "gemini-3.8-flash",
+      "provider": "groq",
+      "model_name": "qwen/qwen3.8-27b",
       "temperature": 0.0,
       "top_p": 0.1,
       "frequency_penalty": 0.3,
       "stop_sequences": [],
-      "max_tokens": 250
+      "max_tokens": 300
     },
     "reporter": {
-      "provider": "gemini",
-      "model_name": "gemini-3.8-flash",
+      "provider": "groq",
+      "model_name": "qwen/qwen3.8-27b",
       "temperature": 0.0,
       "top_p": 0.1,
       "stop_sequences": [],
-      "max_tokens": 300
+      "max_tokens": 400
     }
   },
   "agent_limits": {
-    "max_react_steps": 2,
+    "max_react_steps": 3,
     "max_audit_rounds": 1,
     "sql_timeout_seconds": 3,
     "sql_row_limit": 25,
-    "api_timeout_seconds": 15,
+    "api_timeout_seconds": 20,
     "gemini_min_interval_seconds": 13,
-    "gemini_rate_limit_retries": 1
+    "gemini_rate_limit_retries": 1,
+    "openrouter_min_interval_seconds": 4,
+    "openrouter_rate_limit_retries": 1,
+    "groq_min_interval_seconds": 65,
+    "groq_rate_limit_retries": 0
   }
 }

@@ -14,7 +14,7 @@ def _strip_sql_markdown(response: str) -> str:
 
 
 def run_oneshot_sql(db_path: str, question: str, llm_client=None) -> dict:
-    """Generate one SQL query with Groq, execute it, and summarize the result."""
+    """Generate one SQL query, execute it, and summarize the result."""
     del llm_client
     schema = search_schema("full schema")
     sql_system_prompt = f"""
@@ -35,10 +35,9 @@ explanations, comments, or more than one statement.
 
     answer_system_prompt = """
 You are a data analyst reporting a database investigation.
-Answer concisely in plain text. State the root cause, the specific entity,
-and the exact dollar impact when the query result supports it. If the result
-does not support a reliable cause or amount, say that explicitly.
-Do not invent values.
+Answer concisely in plain text. State only the verified root cause and
+affected entity or category. Explain why the evidence supports that cause.
+Do not calculate, predict, or report a dollar impact. Do not invent facts.
 """
     final_answer = generate_completion(
         answer_system_prompt,

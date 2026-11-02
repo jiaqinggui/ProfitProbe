@@ -10,6 +10,9 @@
       },
       "gemini": {
         "model_name": "gemini-3.8-flash"
+      },
+      "openrouter": {
+        "model_name": "google/gemma-4-31b-it:free"
       }
     }
   },
