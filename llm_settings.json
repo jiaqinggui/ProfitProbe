@@ -1,0 +1,57 @@
+{
+  "roles": {
+    "oneshot": {
+      "provider": "gemini",
+      "model_name": "gemini-3.8-flash",
+      "temperature": 0.0,
+      "top_p": 0.1,
+      "frequency_penalty": 0.3,
+      "stop_sequences": [],
+      "max_tokens": 300
+    },
+    "analyst": {
+      "provider": "gemini",
+      "model_name": "gemini-3.8-flash",
+      "temperature": 0.0,
+      "top_p": 0.1,
+      "frequency_penalty": 0.3,
+      "stop_sequences": [],
+      "max_tokens": 300
+    },
+    "planner": {
+      "provider": "gemini",
+      "model_name": "gemini-3.8-flash",
+      "temperature": 0.0,
+      "top_p": 0.1,
+      "frequency_penalty": 0.3,
+      "stop_sequences": [],
+      "max_tokens": 300
+    },
+    "auditor": {
+      "provider": "gemini",
+      "model_name": "gemini-3.8-flash",
+      "temperature": 0.0,
+      "top_p": 0.1,
+      "frequency_penalty": 0.3,
+      "stop_sequences": [],
+      "max_tokens": 250
+    },
+    "reporter": {
+      "provider": "gemini",
+      "model_name": "gemini-3.8-flash",
+      "temperature": 0.0,
+      "top_p": 0.1,
+      "stop_sequences": [],
+      "max_tokens": 300
+    }
+  },
+  "agent_limits": {
+    "max_react_steps": 2,
+    "max_audit_rounds": 1,
+    "sql_timeout_seconds": 3,
+    "sql_row_limit": 25,
+    "api_timeout_seconds": 15,
+    "gemini_min_interval_seconds": 13,
+    "gemini_rate_limit_retries": 1
+  }
+}

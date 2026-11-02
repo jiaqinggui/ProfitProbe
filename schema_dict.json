@@ -1,0 +1,64 @@
+{
+  "tables": {
+    "orders": {
+      "description": "Contains order timestamps, status (delivered, canceled), and delivery dates.",
+      "columns": {
+        "order_id": "Primary Key. Unique identifier for an order.",
+        "customer_id": "Foreign Key to customers.customer_id.",
+        "order_status": "Status of the order (delivered, canceled, unavailable).",
+        "order_purchase_timestamp": "Timestamp when the order was placed.",
+        "order_approved_at": "Timestamp when the order was approved.",
+        "order_delivered_carrier_date": "Timestamp when the order was handed to the carrier.",
+        "order_delivered_customer_date": "Timestamp when the order reached the customer."
+      }
+    },
+    "order_items": {
+      "description": "Contains order line items, prices, seller IDs, freight costs, and discount codes.",
+      "columns": {
+        "order_id": "Foreign Key to orders.order_id.",
+        "product_id": "Foreign Key to products.product_id.",
+        "seller_id": "Foreign Key to sellers.seller_id.",
+        "price": "Unit selling price.",
+        "freight_value": "Shipping charge associated with the item.",
+        "discount_code": "Synthetic promotional discount code applied.",
+        "discount_amount": "Dollar value of discount subtracted from price."
+      }
+    },
+    "products": {
+      "description": "Product dimensions, translated category names, and unit costs.",
+      "columns": {
+        "product_id": "Primary Key. Unique product identifier.",
+        "product_category_name": "Category name translated into English.",
+        "unit_cost": "Synthetic cost of manufacturing or purchasing the item."
+      }
+    },
+    "order_payments": {
+      "description": "Payment records for orders.",
+      "columns": {
+        "order_id": "Foreign Key to orders.order_id.",
+        "payment_type": "Payment channel such as boleto, voucher, or credit_card.",
+        "payment_value": "Payment amount.",
+        "payment_installments": "Number of installments."
+      }
+    },
+    "order_reviews": {
+      "description": "Customer review scores and comments for orders.",
+      "columns": {
+        "order_id": "Foreign Key to orders.order_id.",
+        "review_score": "Customer review score from 1 to 5."
+      }
+    },
+    "customers": {
+      "description": "Customer identity and location.",
+      "columns": {
+        "customer_id": "Primary Key. Unique customer identifier.",
+        "customer_state": "Brazilian state abbreviation.",
+        "customer_city": "Customer city."
+      }
+    }
+  },
+  "business_formulas": {
+    "gross_profit": "SUM(order_items.price - products.unit_cost - order_items.discount_amount)",
+    "week_filter": "strftime('%Y-W%W', orders.order_purchase_timestamp)"
+  }
+}

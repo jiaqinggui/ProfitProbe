@@ -1,0 +1,17 @@
+{
+  "database": {
+    "db_path": "olist_base.db",
+    "seed": 42
+  },
+  "llm": {
+    "providers": {
+      "groq": {
+        "model_name": "qwen/qwen3.8-27b"
+      },
+      "gemini": {
+        "model_name": "gemini-3.8-flash"
+      }
+    }
+  },
+  "llm_settings_path": "llm_settings.json"
+}
