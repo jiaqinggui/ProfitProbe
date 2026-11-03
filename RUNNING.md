@@ -1,6 +1,6 @@
-# Running TeleTask
+# Running ProfitProbe
 
-TeleTask compares three LLM-based data-analysis architectures:
+ProfitProbe compares three LLM-based data-analysis architectures:
 
 1. One-shot Text-to-SQL
 2. Single Groq ReAct analyst
@@ -28,7 +28,7 @@ If PowerShell blocks activation, use the Python executable directly:
 Create or edit the root-level `.env` file:
 
 ```text
-TeleTask\
+ProfitProbe\
   .env
   config.json
   llm_settings.json

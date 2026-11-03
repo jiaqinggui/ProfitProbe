@@ -222,7 +222,7 @@ def run_evaluations(part: int | None = None) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run the TeleTask benchmark.")
+    parser = argparse.ArgumentParser(description="Run the ProfitProbe benchmark.")
     parser.add_argument(
         "--part",
         type=int,

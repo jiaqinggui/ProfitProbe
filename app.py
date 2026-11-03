@@ -13,8 +13,8 @@ def _value(row: pd.Series, column: str, default: object = "") -> object:
     return default if pd.isna(value) else value
 
 
-st.set_page_config(page_title="TeleTask Results", layout="wide")
-st.title("TeleTask Agent Comparison")
+st.set_page_config(page_title="ProfitProbe Results", layout="wide")
+st.title("ProfitProbe Agent Comparison")
 st.write("Compare the one-shot, Single ReAct, and Multi-Agent results for each scenario.")
 
 if not RESULTS_PATH.exists():

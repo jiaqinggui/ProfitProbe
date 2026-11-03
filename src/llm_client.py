@@ -150,8 +150,8 @@ def _generate_openrouter_completion(
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/jiaqinggui/TeleTask",
-            "X-Title": "TeleTask",
+            "HTTP-Referer": "https://github.com/jiaqinggui/ProfitProbe",
+            "X-Title": "ProfitProbe",
         },
         method="POST",
     )
