@@ -211,6 +211,37 @@ ReAct step counts, query counts, audit rounds, and per-system errors.
 The standard run evaluates 30 unique scenarios: ten wrong-discount scenarios,
 ten shipping-delay scenarios, and ten clean controls.
 
+## Split the benchmark across three people
+
+Each person uses their own Groq key in their own `.env`, because Groq limits
+are per account. Each person runs one share of 10 cases:
+
+```bash
+python evaluations.py --part 1   # person 1
+python evaluations.py --part 2   # person 2
+python evaluations.py --part 3   # person 3
+```
+
+Each share mixes discount, shipping, and control scenarios and writes to
+`evaluations_results_part<N>.csv`. Rerunning the same command resumes: cases
+that already completed without errors are skipped.
+
+To run a second share on the same machine with another key, override the key
+for that terminal only:
+
+```bash
+GROQ_API_KEY=other_key python evaluations.py --part 2
+```
+
+Once all three part files are in the repository root, combine them:
+
+```bash
+python merge_results.py
+```
+
+This writes `evaluations_results.csv` for the Streamlit app and lists any
+scenarios that are still missing.
+
 ## Run the three-scenario trial
 
 To run only scenarios 1, 2, and 3, use:

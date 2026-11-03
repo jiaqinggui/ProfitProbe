@@ -1,3 +1,4 @@
+import argparse
 import json
 import threading
 import time
@@ -17,7 +18,8 @@ from src.system_react import run_single_react_agent
 PROJECT_ROOT = Path(__file__).resolve().parent
 LABELS_PATH = OUTPUT_DIR / "labels.json"
 RESULTS_PATH = PROJECT_ROOT / "evaluations_results.csv"
-RECOVERY_RESULTS_PATH = PROJECT_ROOT / "evaluations_results_recovery.csv"
+NUM_PARTS = 3
+ERROR_COLUMNS = ("oneshot_error", "react_error", "multi_agent_error")
 T = TypeVar("T")
 
 # Ten unique cases per benchmark group: wrong discounts, shipping delays,
@@ -92,33 +94,70 @@ def _load_cases() -> list[dict]:
     return [scenarios[scenario_id] for scenario_id in BENCHMARK_SCENARIO_IDS]
 
 
-def _save_results(results: list[dict]) -> Path:
-    output = pd.DataFrame(results)
-    try:
-        output.to_csv(RESULTS_PATH, index=False)
+def results_path_for_part(part: int | None) -> Path:
+    if part is None:
         return RESULTS_PATH
+    return PROJECT_ROOT / f"evaluations_results_part{part}.csv"
+
+
+def _load_completed_results(results_path: Path) -> list[dict]:
+    """Return saved rows that finished without errors, so they are not rerun."""
+    if not results_path.exists():
+        return []
+    saved = pd.read_csv(results_path)
+    for column in ERROR_COLUMNS:
+        if column in saved.columns:
+            saved = saved[saved[column].isna()]
+    return [
+        {key: value for key, value in row.items() if not pd.isna(value)}
+        for row in saved.to_dict("records")
+    ]
+
+
+def _save_results(results: list[dict], results_path: Path) -> Path:
+    output = pd.DataFrame(results).sort_values("evaluation_case")
+    try:
+        output.to_csv(results_path, index=False)
+        return results_path
     except PermissionError:
-        output.to_csv(RECOVERY_RESULTS_PATH, index=False)
+        recovery_path = results_path.with_name(f"{results_path.stem}_recovery.csv")
+        output.to_csv(recovery_path, index=False)
         print(
-            f"Could not write {RESULTS_PATH.name}; it is locked by another "
-            f"program. Saved results to {RECOVERY_RESULTS_PATH.name} instead.",
+            f"Could not write {results_path.name}; it is locked by another "
+            f"program. Saved results to {recovery_path.name} instead.",
             flush=True,
         )
-        return RECOVERY_RESULTS_PATH
+        return recovery_path
 
 
-def run_evaluations() -> None:
+def run_evaluations(part: int | None = None) -> None:
     ensure_scenarios()
-    cases = _load_cases()
-    results = []
+    # Interleave cases so each part gets a mix of discount, shipping, and
+    # control scenarios.
+    numbered_cases = list(enumerate(_load_cases(), start=1))
+    if part is not None:
+        numbered_cases = numbered_cases[part - 1::NUM_PARTS]
 
-    for index, test in enumerate(cases, start=1):
+    results_path = results_path_for_part(part)
+    results = _load_completed_results(results_path)
+    completed_ids = {int(row["scenario_id"]) for row in results}
+    if completed_ids:
+        print(
+            f"Resuming: {len(completed_ids)} completed case(s) found in "
+            f"{results_path.name}.",
+            flush=True,
+        )
+    saved_path = results_path
+
+    for position, (index, test) in enumerate(numbered_cases, start=1):
         scenario_id = test["scenario_id"]
+        if scenario_id in completed_ids:
+            continue
         db_path = OUTPUT_DIR / f"scenario_{scenario_id:02d}.db"
         question = test["question"]
         started = time.monotonic()
         print(
-            f"\nEvaluation case {index}/{len(cases)} "
+            f"\nEvaluation case {position}/{len(numbered_cases)} "
             f"(scenario {scenario_id}): {test['planted_cause']}",
             flush=True,
         )
@@ -172,9 +211,9 @@ def run_evaluations() -> None:
             row["multi_agent_error"] = f"{type(exc).__name__}: {exc}"
 
         results.append(row)
-        saved_path = _save_results(results)
+        saved_path = _save_results(results, results_path)
         print(
-            f"  Completed case {index}/{len(cases)} "
+            f"  Completed case {position}/{len(numbered_cases)} "
             f"({int(time.monotonic() - started)}s)",
             flush=True,
         )
@@ -183,4 +222,11 @@ def run_evaluations() -> None:
 
 
 if __name__ == "__main__":
-    run_evaluations()
+    parser = argparse.ArgumentParser(description="Run the TeleTask benchmark.")
+    parser.add_argument(
+        "--part",
+        type=int,
+        choices=range(1, NUM_PARTS + 1),
+        help=f"Run only one of {NUM_PARTS} interleaved shares of the 30 cases.",
+    )
+    run_evaluations(parser.parse_args().part)

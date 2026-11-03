@@ -2,6 +2,7 @@
 olist_base.db
 scenarios/
 evaluations_results*.csv
+!evaluations_results_part[123].csv
 trial_results_*.csv
 __pycache__/
 *.py[cod]
