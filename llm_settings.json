@@ -46,7 +46,7 @@
     }
   },
   "agent_limits": {
-    "max_react_steps": 3,
+    "max_react_steps": 8,
     "max_audit_rounds": 1,
     "sql_timeout_seconds": 3,
     "sql_row_limit": 25,

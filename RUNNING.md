@@ -76,7 +76,7 @@ The editable shared limits are in the same file:
 ```json
 {
   "agent_limits": {
-    "max_react_steps": 3,
+    "max_react_steps": 8,
     "max_audit_rounds": 1,
     "sql_timeout_seconds": 3,
     "sql_row_limit": 25,
@@ -93,6 +93,9 @@ The editable shared limits are in the same file:
 
 These are set to a fast evaluation profile. Increase `max_react_steps` or
 `max_audit_rounds` if you prefer deeper analysis over shorter runtimes.
+`max_react_steps` was raised from 3 to 8 because, with 3 steps, the ReAct
+analyst used every step on queries and never reached a final answer in any of
+the 30 benchmark cases.
 Groq retries are disabled so a failed request is not silently repeated and
 counted again.
 
@@ -102,9 +105,8 @@ minute to stay below the free-tier five-requests-per-minute limit. A single
 quota retry is allowed when the API provides a retry delay.
 Groq requests are paced at 65 seconds apart and SDK retries are disabled.
 This intentionally prioritizes staying below the reported 1,000
-output-tokens-per-minute budget over speed. The larger response budgets and
-three ReAct steps give the agents enough room to complete their required
-formats. The agents report the cause and affected entity; scenario dollar
+output-tokens-per-minute budget over speed. The larger response budgets give
+the agents enough room to complete their required formats. The agents report the cause and affected entity; scenario dollar
 values remain ground-truth evaluation fields rather than model predictions.
 
 `config.json` identifies the settings file and stores database-level settings.
@@ -232,6 +234,23 @@ for that terminal only:
 ```bash
 GROQ_API_KEY=other_key python evaluations.py --part 2
 ```
+
+### Rerun only ReAct
+
+After changing `max_react_steps`, rerun just the ReAct system on your saved
+share. The One-shot and Multi-agent answers in the part file are kept:
+
+```bash
+python evaluations.py --part 1 --react-only   # person 1
+python evaluations.py --part 2 --react-only   # person 2
+python evaluations.py --part 3 --react-only   # person 3
+```
+
+Pull first so your part file is the latest committed version. Each finished
+case is saved immediately and records the `react_max_steps` it ran with.
+Rerunning the same command resumes: cases already run with the current step
+limit and without a ReAct error are skipped. Commit and push the updated part
+file when it finishes.
 
 Once all three part files are in the repository root, combine them:
 
