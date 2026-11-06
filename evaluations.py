@@ -10,6 +10,7 @@ import pandas as pd
 
 from build_base_db import DB_PATH, build_base_db
 from injector import OUTPUT_DIR
+from src.llm_client import load_agent_limits
 from src.system_multi import run_multi_agent_team
 from src.system_oneshot import run_oneshot_sql
 from src.system_react import run_single_react_agent
@@ -20,6 +21,13 @@ LABELS_PATH = OUTPUT_DIR / "labels.json"
 RESULTS_PATH = PROJECT_ROOT / "evaluations_results.csv"
 NUM_PARTS = 3
 ERROR_COLUMNS = ("oneshot_error", "react_error", "multi_agent_error")
+REACT_COLUMNS = (
+    "react_answer",
+    "react_steps",
+    "react_query_count",
+    "react_max_steps",
+    "react_error",
+)
 T = TypeVar("T")
 
 # Ten unique cases per benchmark group: wrong discounts, shipping delays,
@@ -130,6 +138,65 @@ def _save_results(results: list[dict], results_path: Path) -> Path:
         return recovery_path
 
 
+def _run_react(db_path: Path, question: str) -> dict:
+    """Run the ReAct system and return its result columns for one case."""
+    fields = {"react_max_steps": int(load_agent_limits()["max_react_steps"])}
+    try:
+        result = _run_with_progress(
+            "ReAct",
+            lambda: run_single_react_agent(str(db_path), question),
+        )
+        fields.update(
+            react_answer=result["final_answer"],
+            react_steps=result["steps_taken"],
+            react_query_count=len(result["queries_executed"]),
+        )
+    except Exception as exc:
+        fields["react_error"] = f"{type(exc).__name__}: {exc}"
+    return fields
+
+
+def rerun_react(part: int | None = None) -> None:
+    """Redo only the ReAct columns of saved results, keeping the other systems' answers.
+
+    Rows already run with the current max_react_steps and without a ReAct
+    error are skipped, so rerunning the command resumes.
+    """
+    ensure_scenarios()
+    results_path = results_path_for_part(part)
+    if not results_path.exists():
+        raise SystemExit(f"{results_path.name} not found. Run the full evaluation first.")
+    max_steps = int(load_agent_limits()["max_react_steps"])
+    questions = {int(item["scenario_id"]): item["question"] for item in _load_cases()}
+    results = [
+        {key: value for key, value in row.items() if not pd.isna(value)}
+        for row in pd.read_csv(results_path).to_dict("records")
+    ]
+    saved_path = results_path
+
+    for position, row in enumerate(results, start=1):
+        if row.get("react_max_steps") == max_steps and "react_error" not in row:
+            continue
+        scenario_id = int(row["scenario_id"])
+        started = time.monotonic()
+        print(
+            f"\nReAct rerun {position}/{len(results)} "
+            f"(scenario {scenario_id}, max {max_steps} steps): {row['ground_truth_cause']}",
+            flush=True,
+        )
+        for column in REACT_COLUMNS:
+            row.pop(column, None)
+        row.update(_run_react(OUTPUT_DIR / f"scenario_{scenario_id:02d}.db", questions[scenario_id]))
+        saved_path = _save_results(results, results_path)
+        print(
+            f"  Completed ReAct rerun {position}/{len(results)} "
+            f"({int(time.monotonic() - started)}s)",
+            flush=True,
+        )
+
+    print(f"Saved evaluation results to {saved_path}")
+
+
 def run_evaluations(part: int | None = None) -> None:
     ensure_scenarios()
     # Interleave cases so each part gets a mix of discount, shipping, and
@@ -182,19 +249,8 @@ def run_evaluations(part: int | None = None) -> None:
         except Exception as exc:
             row["oneshot_error"] = f"{type(exc).__name__}: {exc}"
 
-        try:
-            print("  [2/3] ReAct: running...", flush=True)
-            result = _run_with_progress(
-                "ReAct",
-                lambda: run_single_react_agent(str(db_path), question),
-            )
-            row.update(
-                react_answer=result["final_answer"],
-                react_steps=result["steps_taken"],
-                react_query_count=len(result["queries_executed"]),
-            )
-        except Exception as exc:
-            row["react_error"] = f"{type(exc).__name__}: {exc}"
+        print("  [2/3] ReAct: running...", flush=True)
+        row.update(_run_react(db_path, question))
 
         try:
             print("  [3/3] Multi-agent: running...", flush=True)
@@ -229,4 +285,13 @@ if __name__ == "__main__":
         choices=range(1, NUM_PARTS + 1),
         help=f"Run only one of {NUM_PARTS} interleaved shares of the 30 cases.",
     )
-    run_evaluations(parser.parse_args().part)
+    parser.add_argument(
+        "--react-only",
+        action="store_true",
+        help="Rerun only the ReAct system on saved results, keeping the other answers.",
+    )
+    args = parser.parse_args()
+    if args.react_only:
+        rerun_react(args.part)
+    else:
+        run_evaluations(args.part)
