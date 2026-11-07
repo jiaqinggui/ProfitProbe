@@ -1,4 +1,4 @@
-evaluation_case,scenario_id,ground_truth_cause,ground_truth_entity,ground_truth_dollar_impact,oneshot_answer,oneshot_sql,react_answer,react_steps,react_query_count,multi_agent_error,react_error,multi_agent_answer,multi_agent_audit_rounds,multi_agent_query_count
+evaluation_case,scenario_id,ground_truth_cause,ground_truth_entity,ground_truth_dollar_impact,oneshot_answer,oneshot_sql,multi_agent_error,react_max_steps,react_answer,react_steps,react_query_count,multi_agent_answer,multi_agent_audit_rounds,multi_agent_query_count,react_error
 3,3,Wrong discount code,sports_leisure,7694.5,"Root Cause: Excessive discounting.
 Affected Entity: Order items in 2017-W34.
 Evidence: The query results show that for every listed item, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). For example, in the first record, the gross margin is 258.00 (645.00 - 387.00), but the discount is 580.50, resulting in a negative item profit of -322.50. This pattern holds across all displayed rows, indicating that discounts were applied at a level that completely eroded and reversed the profit on these sales.","SELECT
@@ -12,7 +12,7 @@ FROM order_items oi
 JOIN products p ON oi.product_id = p.product_id
 JOIN orders o ON oi.order_id = o.order_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W34'
-ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,,
+ORDER BY item_profit ASC;",ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,,,,
 6,6,Wrong discount code,toys,8515.75,"Root Cause: Excessive discounting.
 Affected Entity: Multiple products across various categories.
 Evidence: The query results show that for every item listed in 2017-W41, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed transactions, indicating that the discounts applied during this period were larger than the profit margin on the goods sold.","SELECT
@@ -26,7 +26,7 @@ FROM order_items oi
 JOIN orders o ON oi.order_id = o.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W41'
-ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,,
+ORDER BY item_profit ASC;",ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,8,The sharp profit drop in 2017-W41 was caused by a,5.0,4.0,,,,
 9,9,Wrong discount code,baby,4642.57,"Root Cause: Excessive discounting.
 Affected Entity: Multiple products across various price points.
 Evidence: The query results show that for every listed item in 2018-W10, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed records, indicating that the discounts applied were larger than the profit margin available on the sale price.","SELECT
@@ -40,7 +40,7 @@ FROM order_items oi
 JOIN products p ON oi.product_id = p.product_id
 JOIN orders o ON oi.order_id = o.order_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2018-W10'
-ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,,
+ORDER BY item_profit ASC;",ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,8,"The sharp profit fall in 2018-W10 was caused by a promotional error identified by the discount code ""PROMO_BUG"". This code was applied to 37 items in the ""baby"" product category, granting an average discount of approximately 90% of the item price. This excessive discounting resulted in a negative gross profit per item for these sales, turning them into losses and significantly dragging down the total weekly profit compared to adjacent weeks which had no discounts.",8.0,7.0,,,,
 12,12,Shipping delay,00fc707aaaad2d31347cf883cd2dfe10,0.0,"The provided SQL result for 2017-W33 does not contain comparative data from other weeks or a baseline, so it is impossible to verify a deterioration in delivery performance or margin based solely on this output. The query returns a single row with an average delivery time of approximately 11.1 days and a margin of approximately 40.2%, but without prior period data, no decline can be confirmed. Therefore, the root cause of any alleged deterioration cannot be established from the provided evidence.","SELECT
     strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
     COUNT(o.order_id) AS total_orders,
@@ -54,7 +54,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W33'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,,,,APITimeoutError: Request timed out.,"**Report: Investigation of 2017-W33 Performance Deterioration**
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,"**Report: Investigation of 2017-W33 Performance Deterioration**
 
 **Status:** UNVERIFIED
 
@@ -68,7 +68,7 @@ Orders and associated financial metrics for the week of 2017-W33.
 Data confirms a decline in average gross profit per order and a slight increase in average delivery days when comparing 2017-W33 to 2017-W32. However, the analyst failed to complete the necessary analysis to determine the specific drivers (such as product mix, discount changes, or logistics issues) responsible for these changes. The investigation reached its step limit without establishing a causal link between the observed metrics and a specific operational factor.
 
 **Auditor Verdict:**
-FAIL. The auditor rejected the report because the analyst did not provide a supported conclusion linking the data to the underlying cause of the deterioration.",1.0,3.0
+FAIL. The auditor rejected the report because the analyst did not provide a supported conclusion linking the data to the underlying cause of the deterioration.",1.0,3.0,
 15,15,Shipping delay,038b75b729c8a9a04b0d07cba7eabe86,0.0,"The provided SQL result for 2017-W40 does not contain comparative data from previous weeks or a baseline, making it impossible to verify a deterioration in delivery performance or margin based solely on this output. The query returns a single row with an average delivery time of 12.22 days and a margin of 40.66%, but without historical context or a specific anomaly flag in the data, no root cause for a decline can be established from this evidence alone.","SELECT
     strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
     COUNT(o.order_id) AS total_orders,
@@ -82,7 +82,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W40'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,,,,APITimeoutError: Request timed out.,"**Report: Investigation of 2017-W40 Performance Deterioration**
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,8,The premise that delivery performance and margin deteriorated in 2017-W40 is not supported by the data. The gross profit margin for 2017-W40 (approx. 40.7%) was actually higher than the previous week (approx. 40.0%) and the following week (approx. 40.5%). While the average delivery time increased slightly,8.0,7.0,"**Report: Investigation of 2017-W40 Performance Deterioration**
 
 **Status:** UNVERIFIED
 
@@ -96,7 +96,7 @@ Orders and product items for the week of 2017-W40.
 The auditor rejected the analyst's conclusion because the investigation reached its step limit without synthesizing the available data into a final answer. While the SQL queries confirmed a slight increase in average delivery days (from 11.66 to 12.21) and a decrease in average gross profit per item (from 52.84 to 51.36) compared to the previous week, the analyst did not provide a verified explanation linking these metrics to a specific root cause among the proposed hypotheses. Consequently, the conclusion remains unverified.
 
 **Auditor Verdict:**
-FAIL",1.0,3.0
+FAIL",1.0,3.0,
 18,18,Shipping delay,05e107217c7266362fd44b75b2cd4cc4,0.0,"The investigation could not be completed because the provided SQL query failed to execute. The error ""no such column: oi.product"" indicates a syntax error in the JOIN condition (likely intended to be `oi.product_id = p.product_id`). Consequently, no data was retrieved, and the root cause of the 2018-W09 performance deterioration cannot be verified from the provided evidence.","SELECT
     strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
     COUNT(o.order_id) AS total_orders,
@@ -133,7 +133,7 @@ FAIL",1.0,3.0
         ) AS margin_vs_2018_avg
 FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
-JOIN products p ON oi.product;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,"Report: 2018-W09 Performance Investigation
+JOIN products p ON oi.product;",,8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,"Report: 2018-W09 Performance Investigation
 
 Root Cause: Unverified. The premise that margin deteriorated is incorrect based on available data.
 
@@ -144,8 +144,8 @@ Supporting Explanation:
 2. Delivery Performance: Average delivery days for delivered orders increased from 17.56 days in 2018-W08 to 19.09 days in 2018-W09. This confirms a deterioration in delivery speed, but the specific root cause for this delay was not identified in the provided queries.
 3. Auditor Status: The audit failed because the analyst did not provide a final conclusion and the initial question contained a false premise regarding margin.
 
-Auditor Verdict: FAIL. The conclusion is unverified due to the lack of a final analyst answer and the contradiction between the question's premise and the data regarding margin.",1.0,3.0
-21,71,No single cause (normal week-to-week noise),None,0.0,"Based on the provided SQL result for 2017-W32, the data shows a gross profit of 52,493.48, an average price of 121.14, and an **average unit cost of 72.18**. The **average review_score is 4.25**, which is slightly below the 4.5+ range often seen in high-performing periods, and there were **6 canceled orders** out of 927.
+Auditor Verdict: FAIL. The conclusion is unverified due to the lack of a final analyst answer and the contradiction between the question's premise and the data regarding margin.",1.0,3.0,
+21,71,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W32, the data shows a gross profit of 52,493.48, an average price of 121.14, and an **average unit cost of 72.18**. The **average review_score is 4.25**, which is slightly below the 4.5+ range often seen in high-performing periods, and there were **6 canceled orders** out of 927.
 
 The slight performance change (implied by the question) is most likely driven by the **average unit cost (72.18)** being relatively high compared to the average price (121.14), compressing the margin per item. Additionally, the **average review score of 4.25** suggests a minor dip in customer satisfaction or product quality perception during that week, which can correlate with performance fluctuations. The low number of cancellations (6) indicates that order fulfillment issues were not the primary driver.
 
@@ -166,7 +166,7 @@ JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 LEFT JOIN order_reviews r ON o.order_id = r.order_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W32'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,"**Report: Investigation of Performance Change in 2017-W32**
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,"**Report: Investigation of Performance Change in 2017-W32**
 
 **Status:** UNVERIFIED
 
@@ -180,8 +180,8 @@ Orders with status ""unavailable"" during week 2017-W32.
 Data analysis confirmed a spike in ""unavailable"" orders in 2017-W32 (12 orders) compared to surrounding weeks (4-8 orders). However, the analyst reached the investigation step limit before completing the analysis. A subsequent query attempting to correlate these unavailable orders with specific product categories returned zero rows, preventing the verification of any specific driver (such as product mix, payment type, or geographic distribution). Consequently, none of the proposed hypotheses could be confirmed or refuted with sufficient evidence.
 
 **Auditor Verdict:**
-FAIL. The auditor determined the conclusion is unverified due to the lack of a final answer and incomplete evidence linking the spike in unavailable orders to a specific cause.",1.0,3.0
-24,74,No single cause (normal week-to-week noise),None,0.0,"Based on the provided SQL result for 2017-W35, the data shows a gross profit of 71,183.99, an average price of 159.66, and an average unit cost of 97.21. The average discount is 0.0, and there were 4 canceled orders out of 1,005 total orders.
+FAIL. The auditor determined the conclusion is unverified due to the lack of a final answer and incomplete evidence linking the spike in unavailable orders to a specific cause.",1.0,3.0,
+24,74,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W35, the data shows a gross profit of 71,183.99, an average price of 159.66, and an average unit cost of 97.21. The average discount is 0.0, and there were 4 canceled orders out of 1,005 total orders.
 
 However, the query and result provided **only contain data for the single week 2017-W35**. To determine why performance *changed* (implying a comparison to a previous period or baseline), data from adjacent weeks (e.g., 2017-W34 or 2017-W36) or a historical average is required. The current evidence does not include comparative data, nor does it isolate specific drivers of change (such as a shift in product mix, pricing strategy, or cost structure) relative to a prior period.
 
@@ -199,7 +199,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W35'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,"Report: Investigation of 2017-W35 Performance Change
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,"Report: Investigation of 2017-W35 Performance Change
 
 Status: UNVERIFIED
 
@@ -209,8 +209,8 @@ Affected Entity: Order performance metrics for the week labeled 2017-W35.
 
 Explanation: The investigation failed to reach a verified conclusion. The analyst exhausted the available steps without providing a final answer. Furthermore, the auditor identified critical methodological flaws in the data retrieval process. The SQL queries used an incorrect date range that spanned multiple weeks (W34, W35, and W36) rather than isolating the specific week in question. Additionally, the week calculation logic used in the queries did not align with standard business week definitions, preventing a valid comparative analysis against a baseline. Due to these incomplete and flawed data extraction methods, no specific hypothesis regarding payment types, geography, discounts, product mix, or installments could be validated.
 
-Auditor Verdict: FAIL",1.0,3.0
-27,77,No single cause (normal week-to-week noise),None,0.0,"Based on the provided SQL result for 2017-W42, the data shows a gross profit of 66,018.00, an average price of 122.49, and an average unit cost of 73.22. The average discount is 0.0, and there were 4 canceled orders out of 1,129 total.
+Auditor Verdict: FAIL",1.0,3.0,
+27,77,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W42, the data shows a gross profit of 66,018.00, an average price of 122.49, and an average unit cost of 73.22. The average discount is 0.0, and there were 4 canceled orders out of 1,129 total.
 
 However, the query and result only provide data for the single week 2017-W42. To determine why performance *changed* (implying a comparison to a previous period or baseline), data from other weeks is required. The provided evidence does not contain comparative data (e.g., 2017-W41 or a historical average) to identify the specific cause of the change.
 
@@ -228,7 +228,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W42'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,"**Report: Investigation of Performance Change in 2017-W42**
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,8,,,,"**Report: Investigation of Performance Change in 2017-W42**
 
 **Status:** Unverified
 
@@ -242,8 +242,8 @@ Order performance metrics (specifically gross profit per item and delivery days)
 The analyst reached the maximum step limit without providing a verified conclusion. While SQL queries confirmed a decrease in average gross profit per item (from approximately 52.5 to 49.3) and a slight improvement in average delivery days (from approximately 12.1 to 11.6) compared to the previous week, no causal factor was established. The auditor failed the investigation because no explanation was provided for these observed changes.
 
 **Auditor Verdict:**
-FAIL",1.0,3.0
-30,80,No single cause (normal week-to-week noise),None,0.0,"Based on the provided SQL result for 2018-W15, the data shows an average discount of 0.0. The query calculates gross profit as `price - unit_cost - discount_amount`. Since the discount is zero, the gross profit is driven entirely by the difference between the average price (128.27) and the average unit cost (76.93).
+FAIL",1.0,3.0,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 195679, Requested 5001. Please try again in 4m53.76s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
+30,80,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2018-W15, the data shows an average discount of 0.0. The query calculates gross profit as `price - unit_cost - discount_amount`. Since the discount is zero, the gross profit is driven entirely by the difference between the average price (128.27) and the average unit cost (76.93).
 
 However, the provided result set contains **only** the data for 2018-W15. It does not contain data for previous weeks or periods to compare against. Therefore, it is **impossible to determine why performance changed** based solely on this single row of data. A ""change"" implies a comparison between two points in time, and the second point (the baseline) is missing from the evidence.
 
@@ -260,7 +260,7 @@ JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE o.order_status = 'delivered'
   AND strftime('%Y-W%W', o.order_purchase_timestamp) = '2018-W15'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,"Report: 2018-W15 Performance Investigation
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",,8,,,,"Report: 2018-W15 Performance Investigation
 
 Status: UNVERIFIED
 
@@ -270,4 +270,4 @@ Affected Entity: Order performance metrics (order count and gross profit) for th
 
 Explanation: The auditor failed the investigation because the analyst did not provide a final conclusion or identify a specific root cause for the performance change. While SQL queries confirmed a slight increase in order count and gross profit in 2018-W15 compared to previous weeks, the analyst failed to interpret these findings to explain the ""why"" behind the change. The data regarding payment types and geographic distribution was retrieved but not sufficiently analyzed to confirm or refute the proposed hypotheses.
 
-Auditor Verdict: FAIL",1.0,3.0
+Auditor Verdict: FAIL",1.0,3.0,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199832, Requested 2770. Please try again in 18m44.064s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
