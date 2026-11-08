@@ -97,9 +97,8 @@ Increase `max_react_steps` or `max_audit_rounds` only if you prefer deeper
 analysis over shorter runtimes and have enough quota.
 `max_react_steps` was raised from 3 to 8 because, with 3 steps, the ReAct
 analyst used every step on queries and never reached a final answer in any of
-the 30 benchmark cases. With 8 steps it still ran out of steps in 13 of 30
-cases, so the ReAct prompt now states the step budget, labels each step
-("Step 3 of 8"), and requires a FINAL ANSWER on the last step.
+the 30 benchmark cases. The multi-agent analyst is the same ReAct loop, so it
+uses the same limit.
 Groq retries are disabled so a failed request is not silently repeated and
 counted again.
 
@@ -255,28 +254,30 @@ $env:GROQ_API_KEY = "other_key"
 python evaluations.py --part 2
 ```
 
-### Rerun only ReAct
+### Rerun ReAct and multi-agent after a step-limit change
 
-After changing `max_react_steps` or the ReAct prompt, rerun just the ReAct
-system on your saved share. The One-shot and Multi-agent answers in the part
-file are kept:
+After changing `max_react_steps`, rerun the two systems that use the ReAct
+loop on your saved share. One-shot answers in the part file are kept:
 
 ```bash
-python evaluations.py --part 1 --react-only   # person 1
-python evaluations.py --part 2 --react-only   # person 2
-python evaluations.py --part 3 --react-only   # person 3
+python evaluations.py --part 1 --rerun-agents   # person 1
+python evaluations.py --part 2 --rerun-agents   # person 2
+python evaluations.py --part 3 --rerun-agents   # person 3
 ```
 
-Pull first so your part file is the latest committed version. Each finished
-case is saved immediately and records the `react_max_steps` and
-`react_prompt_version` it ran with. Rerunning the same command resumes: cases
-already run with the current step limit and prompt and without a ReAct error
-are skipped. Commit and push the updated part file when it finishes.
+Pull first so your part file is the latest committed version. For each case,
+a system is rerun when its saved result used a different step limit
+(`react_max_steps` or `multi_agent_analyst_steps`) or failed with a provider
+error such as a rate limit or timeout. Other errors, such as a response in the
+wrong format, are kept as that system's result. Each system's result is saved
+as soon as it finishes, and rerunning the same command resumes. Commit and
+push the updated part file when it finishes.
 
-An 8-step ReAct case uses roughly 20,000 Groq tokens, and the free tier allows
-200,000 tokens per day per account, so one key covers about one 10-case share
-per day. A `RateLimitError` mentioning "tokens per day (TPD)" means the key is
-used up; rerun the same command later to retry those cases.
+An 8-step ReAct run uses roughly 20,000 Groq tokens and a multi-agent run
+roughly 25,000 to 30,000. The free tier allows 200,000 tokens per day per
+account on a rolling window, so a 10-case share may not finish in one
+session. A `RateLimitError` mentioning "tokens per day (TPD)" means the key is
+used up for now; rerun the same command a few hours later to finish.
 
 Once all three part files are in the repository root, combine them:
 
