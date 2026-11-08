@@ -1,0 +1,9 @@
+scenario_id,system,keyword_label,final_label,reason
+71,oneshot,wrong,false_cause,"Control: blames elevated unit costs and lower review scores"
+74,oneshot,wrong,correct,"Control: says the cause cannot be determined and blames nothing (keyword list missed the phrasing)"
+75,oneshot,wrong,correct,"Control: says the cause cannot be verified and blames nothing"
+77,oneshot,wrong,correct,"Control: says the cause cannot be verified and blames nothing"
+78,oneshot,wrong,correct,"Control: says the evidence is insufficient and blames nothing"
+79,oneshot,wrong,correct,"Control: says the cause cannot be verified and blames nothing"
+1,react,correct,cause_only,"Names PROMO_BUG but spreads it across six categories instead of bed_bath_table only"
+6,react,wrong,no_answer,"Answer cut off mid-sentence by the response token limit"
