@@ -13,7 +13,6 @@ from injector import OUTPUT_DIR
 from src.llm_client import load_agent_limits
 from src.system_multi import run_multi_agent_team
 from src.system_oneshot import run_oneshot_sql
-from src.system_react import PROMPT_VERSION as REACT_PROMPT_VERSION
 from src.system_react import run_single_react_agent
 
 
@@ -27,8 +26,22 @@ REACT_COLUMNS = (
     "react_steps",
     "react_query_count",
     "react_max_steps",
-    "react_prompt_version",
     "react_error",
+)
+MULTI_AGENT_COLUMNS = (
+    "multi_agent_answer",
+    "multi_agent_audit_rounds",
+    "multi_agent_query_count",
+    "multi_agent_analyst_steps",
+    "multi_agent_error",
+)
+# Errors from a provider outage or quota rather than from the model's answer.
+# rerun_agents retries these; other errors are kept as the system's result.
+TRANSIENT_ERRORS = (
+    "RateLimitError",
+    "APITimeoutError",
+    "APIConnectionError",
+    "InternalServerError",
 )
 T = TypeVar("T")
 
@@ -142,10 +155,7 @@ def _save_results(results: list[dict], results_path: Path) -> Path:
 
 def _run_react(db_path: Path, question: str) -> dict:
     """Run the ReAct system and return its result columns for one case."""
-    fields = {
-        "react_max_steps": int(load_agent_limits()["max_react_steps"]),
-        "react_prompt_version": REACT_PROMPT_VERSION,
-    }
+    fields = {"react_max_steps": int(load_agent_limits()["max_react_steps"])}
     try:
         result = _run_with_progress(
             "ReAct",
@@ -161,11 +171,37 @@ def _run_react(db_path: Path, question: str) -> dict:
     return fields
 
 
-def rerun_react(part: int | None = None) -> None:
-    """Redo only the ReAct columns of saved results, keeping the other systems' answers.
+def _run_multi_agent(db_path: Path, question: str) -> dict:
+    """Run the multi-agent system and return its result columns for one case."""
+    fields = {"multi_agent_analyst_steps": int(load_agent_limits()["max_react_steps"])}
+    try:
+        result = _run_with_progress(
+            "Multi-agent",
+            lambda: run_multi_agent_team(str(db_path), question),
+        )
+        fields.update(
+            multi_agent_answer=result["final_answer"],
+            multi_agent_audit_rounds=result["audit_rounds"],
+            multi_agent_query_count=len(result["queries_executed"]),
+        )
+    except Exception as exc:
+        fields["multi_agent_error"] = f"{type(exc).__name__}: {exc}"
+    return fields
 
-    Rows already run with the current max_react_steps and prompt version and
-    without a ReAct error are skipped, so rerunning the command resumes.
+
+def _needs_rerun(row: dict, steps_column: str, error_column: str, max_steps: int) -> bool:
+    if row.get(steps_column) != max_steps:
+        return True
+    return str(row.get(error_column, "")).startswith(TRANSIENT_ERRORS)
+
+
+def rerun_agents(part: int | None = None) -> None:
+    """Redo the ReAct and multi-agent columns of saved results that need it.
+
+    A system is rerun for a case when its saved result used a different
+    max_react_steps (multi-agent's analyst is the ReAct loop) or failed with a
+    transient provider error. One-shot answers are kept. Rerunning the command
+    resumes where it stopped.
     """
     ensure_scenarios()
     results_path = results_path_for_part(part)
@@ -177,28 +213,39 @@ def rerun_react(part: int | None = None) -> None:
         {key: value for key, value in row.items() if not pd.isna(value)}
         for row in pd.read_csv(results_path).to_dict("records")
     ]
+    systems = (
+        ("Multi-agent", MULTI_AGENT_COLUMNS, "multi_agent_analyst_steps", _run_multi_agent),
+        ("ReAct", REACT_COLUMNS, "react_max_steps", _run_react),
+    )
     saved_path = results_path
 
     for position, row in enumerate(results, start=1):
-        if (
-            row.get("react_max_steps") == max_steps
-            and row.get("react_prompt_version") == REACT_PROMPT_VERSION
-            and "react_error" not in row
-        ):
+        pending = [
+            system
+            for system in systems
+            if _needs_rerun(row, system[2], system[1][-1], max_steps)
+        ]
+        if not pending:
             continue
         scenario_id = int(row["scenario_id"])
+        db_path = OUTPUT_DIR / f"scenario_{scenario_id:02d}.db"
         started = time.monotonic()
         print(
-            f"\nReAct rerun {position}/{len(results)} "
-            f"(scenario {scenario_id}, max {max_steps} steps): {row['ground_truth_cause']}",
+            f"\nRerun case {position}/{len(results)} (scenario {scenario_id}, "
+            f"max {max_steps} steps): {row['ground_truth_cause']}",
             flush=True,
         )
-        for column in REACT_COLUMNS:
-            row.pop(column, None)
-        row.update(_run_react(OUTPUT_DIR / f"scenario_{scenario_id:02d}.db", questions[scenario_id]))
-        saved_path = _save_results(results, results_path)
+        for label, columns, _, run_system in pending:
+            print(f"  {label}: running...", flush=True)
+            for column in columns:
+                row.pop(column, None)
+            row.update(run_system(db_path, questions[scenario_id]))
+            saved_path = _save_results(results, results_path)
+            error = row.get(columns[-1])
+            if error:
+                print(f"  {label} error: {error[:200]}", flush=True)
         print(
-            f"  Completed ReAct rerun {position}/{len(results)} "
+            f"  Completed rerun case {position}/{len(results)} "
             f"({int(time.monotonic() - started)}s)",
             flush=True,
         )
@@ -261,19 +308,8 @@ def run_evaluations(part: int | None = None) -> None:
         print("  [2/3] ReAct: running...", flush=True)
         row.update(_run_react(db_path, question))
 
-        try:
-            print("  [3/3] Multi-agent: running...", flush=True)
-            result = _run_with_progress(
-                "Multi-agent",
-                lambda: run_multi_agent_team(str(db_path), question),
-            )
-            row.update(
-                multi_agent_answer=result["final_answer"],
-                multi_agent_audit_rounds=result["audit_rounds"],
-                multi_agent_query_count=len(result["queries_executed"]),
-            )
-        except Exception as exc:
-            row["multi_agent_error"] = f"{type(exc).__name__}: {exc}"
+        print("  [3/3] Multi-agent: running...", flush=True)
+        row.update(_run_multi_agent(db_path, question))
 
         results.append(row)
         saved_path = _save_results(results, results_path)
@@ -295,12 +331,15 @@ if __name__ == "__main__":
         help=f"Run only one of {NUM_PARTS} interleaved shares of the 30 cases.",
     )
     parser.add_argument(
-        "--react-only",
+        "--rerun-agents",
         action="store_true",
-        help="Rerun only the ReAct system on saved results, keeping the other answers.",
+        help=(
+            "Rerun ReAct and multi-agent on saved results where the step limit "
+            "changed or a provider error occurred, keeping the other answers."
+        ),
     )
     args = parser.parse_args()
-    if args.react_only:
-        rerun_react(args.part)
+    if args.rerun_agents:
+        rerun_agents(args.part)
     else:
         run_evaluations(args.part)
