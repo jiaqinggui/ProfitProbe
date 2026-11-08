@@ -13,6 +13,7 @@ from injector import OUTPUT_DIR
 from src.llm_client import load_agent_limits
 from src.system_multi import run_multi_agent_team
 from src.system_oneshot import run_oneshot_sql
+from src.system_react import PROMPT_VERSION as REACT_PROMPT_VERSION
 from src.system_react import run_single_react_agent
 
 
@@ -26,6 +27,7 @@ REACT_COLUMNS = (
     "react_steps",
     "react_query_count",
     "react_max_steps",
+    "react_prompt_version",
     "react_error",
 )
 T = TypeVar("T")
@@ -140,7 +142,10 @@ def _save_results(results: list[dict], results_path: Path) -> Path:
 
 def _run_react(db_path: Path, question: str) -> dict:
     """Run the ReAct system and return its result columns for one case."""
-    fields = {"react_max_steps": int(load_agent_limits()["max_react_steps"])}
+    fields = {
+        "react_max_steps": int(load_agent_limits()["max_react_steps"]),
+        "react_prompt_version": REACT_PROMPT_VERSION,
+    }
     try:
         result = _run_with_progress(
             "ReAct",
@@ -159,8 +164,8 @@ def _run_react(db_path: Path, question: str) -> dict:
 def rerun_react(part: int | None = None) -> None:
     """Redo only the ReAct columns of saved results, keeping the other systems' answers.
 
-    Rows already run with the current max_react_steps and without a ReAct
-    error are skipped, so rerunning the command resumes.
+    Rows already run with the current max_react_steps and prompt version and
+    without a ReAct error are skipped, so rerunning the command resumes.
     """
     ensure_scenarios()
     results_path = results_path_for_part(part)
@@ -175,7 +180,11 @@ def rerun_react(part: int | None = None) -> None:
     saved_path = results_path
 
     for position, row in enumerate(results, start=1):
-        if row.get("react_max_steps") == max_steps and "react_error" not in row:
+        if (
+            row.get("react_max_steps") == max_steps
+            and row.get("react_prompt_version") == REACT_PROMPT_VERSION
+            and "react_error" not in row
+        ):
             continue
         scenario_id = int(row["scenario_id"])
         started = time.monotonic()

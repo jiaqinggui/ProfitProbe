@@ -3,6 +3,10 @@ import re
 from src.llm_client import generate_completion, load_agent_limits
 from src.tools import run_sql, search_schema
 
+# Recorded with each result so evaluations.py --react-only reruns cases
+# produced by an older version of the prompt.
+PROMPT_VERSION = "step-budget"
+
 
 def _load_limits() -> int:
     return int(load_agent_limits()["max_react_steps"])
@@ -51,6 +55,8 @@ Action Input: <one read-only SQLite SELECT query>
 You may use Action: search_schema with Action Input: full schema if needed.
 After observations, either take another action or return:
 FINAL ANSWER: <concise verified root cause, affected entity, and explanation>
+You have at most {max_steps} steps. Each response uses one step. Leave
+enough steps to give a FINAL ANSWER; on the last step you must give it.
 Do not calculate or report dollar amounts.
 Never use INSERT, UPDATE, DELETE, PRAGMA, or multiple SQL statements.
 """
@@ -61,7 +67,15 @@ Never use INSERT, UPDATE, DELETE, PRAGMA, or multiple SQL statements.
     steps_taken = 0
 
     while steps_taken < max_steps:
-        response = generate_completion(system_prompt, transcript, role="analyst")
+        step_note = f"\n\nStep {steps_taken + 1} of {max_steps}."
+        if steps_taken + 1 == max_steps:
+            step_note += (
+                " This is your last step. Do not take another action; respond "
+                "with FINAL ANSWER based on the observations so far."
+            )
+        response = generate_completion(
+            system_prompt, transcript + step_note, role="analyst"
+        )
         steps_taken += 1
         final_match = re.search(r"FINAL ANSWER\s*:\s*(.*)", response, re.IGNORECASE | re.DOTALL)
         if final_match:
