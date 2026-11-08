@@ -8,3 +8,4 @@ trial_results_*.csv
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+evaluation_scores.csv
