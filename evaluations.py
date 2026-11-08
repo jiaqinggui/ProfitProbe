@@ -189,19 +189,38 @@ def _run_multi_agent(db_path: Path, question: str) -> dict:
     return fields
 
 
-def _needs_rerun(row: dict, steps_column: str, error_column: str, max_steps: int) -> bool:
+STEP_LIMIT_TEXT = "step limit without a verified final answer"
+
+
+def _needs_rerun(
+    row: dict,
+    steps_column: str,
+    error_column: str,
+    max_steps: int,
+    retry_failed: bool = False,
+) -> bool:
     if row.get(steps_column) != max_steps:
         return True
-    return str(row.get(error_column, "")).startswith(TRANSIENT_ERRORS)
+    error = str(row.get(error_column, ""))
+    if retry_failed:
+        # Every run without an answer: any error, or the step limit reached.
+        answer_column = error_column.replace("_error", "_answer")
+        return bool(error) or STEP_LIMIT_TEXT in str(row.get(answer_column, ""))
+    return error.startswith(TRANSIENT_ERRORS)
 
 
-def rerun_agents(part: int | None = None) -> None:
+def rerun_agents(
+    part: int | None = None,
+    retry_failed: bool = False,
+    only: str | None = None,
+) -> None:
     """Redo the ReAct and multi-agent columns of saved results that need it.
 
     A system is rerun for a case when its saved result used a different
     max_react_steps (multi-agent's analyst is the ReAct loop) or failed with a
-    transient provider error. One-shot answers are kept. Rerunning the command
-    resumes where it stopped.
+    transient provider error. With retry_failed, every run that ended without
+    an answer (any error or the step limit) is rerun instead. One-shot answers
+    are kept. Rerunning the command resumes where it stopped.
     """
     ensure_scenarios()
     results_path = results_path_for_part(part)
@@ -217,13 +236,15 @@ def rerun_agents(part: int | None = None) -> None:
         ("Multi-agent", MULTI_AGENT_COLUMNS, "multi_agent_analyst_steps", _run_multi_agent),
         ("ReAct", REACT_COLUMNS, "react_max_steps", _run_react),
     )
+    if only:
+        systems = tuple(system for system in systems if system[0].lower().startswith(only))
     saved_path = results_path
 
     for position, row in enumerate(results, start=1):
         pending = [
             system
             for system in systems
-            if _needs_rerun(row, system[2], system[1][-1], max_steps)
+            if _needs_rerun(row, system[2], system[1][-1], max_steps, retry_failed)
         ]
         if not pending:
             continue
@@ -338,8 +359,21 @@ if __name__ == "__main__":
             "changed or a provider error occurred, keeping the other answers."
         ),
     )
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help=(
+            "With --rerun-agents, rerun every ReAct or multi-agent run that ended "
+            "without an answer (any error or the step limit)."
+        ),
+    )
+    parser.add_argument(
+        "--only",
+        choices=("react", "multi"),
+        help="With --rerun-agents, rerun only one system.",
+    )
     args = parser.parse_args()
     if args.rerun_agents:
-        rerun_agents(args.part)
+        rerun_agents(args.part, args.retry_failed, args.only)
     else:
         run_evaluations(args.part)

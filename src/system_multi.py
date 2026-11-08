@@ -1,7 +1,7 @@
 from typing import Any
 
 from src.llm_client import generate_completion, load_agent_limits
-from src.system_react import run_single_react_agent
+from src.system_react import PROMPT_CHAR_BUDGET, fit_to_budget, run_single_react_agent
 from src.tools import search_schema
 
 
@@ -76,8 +76,8 @@ FEEDBACK: <specific correction required>
 
 Question: {question}
 Analyst conclusion: {state['analyst_conclusion']}
-SQL queries executed: {state['queries_run']}
-SQL observations: {state['observations']}
+SQL queries executed: {fit_to_budget(str(state['queries_run']), PROMPT_CHAR_BUDGET // 4)}
+SQL observations: {fit_to_budget(str(state['observations']), PROMPT_CHAR_BUDGET // 2)}
 """
         audit_response = generate_completion(
             auditor_prompt,
@@ -114,8 +114,8 @@ unverified.
             f"Analyst conclusion: {state['analyst_conclusion']}\n"
             f"Auditor verdict: {audit_verdict}\n"
             f"Auditor feedback: {state['auditor_feedback']}\n"
-            f"Queries: {state['queries_run']}\n"
-            f"SQL observations: {state['observations']}"
+            f"Queries: {fit_to_budget(str(state['queries_run']), PROMPT_CHAR_BUDGET // 4)}\n"
+            f"SQL observations: {fit_to_budget(str(state['observations']), PROMPT_CHAR_BUDGET // 2)}"
         ),
         role="reporter",
     )
