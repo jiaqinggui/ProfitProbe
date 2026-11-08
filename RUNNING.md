@@ -91,8 +91,10 @@ The editable shared limits are in the same file:
 }
 ```
 
-These are set to a fast evaluation profile. Increase `max_react_steps` or
-`max_audit_rounds` if you prefer deeper analysis over shorter runtimes.
+These are set to a quota-conscious evaluation profile. Groq pacing makes the
+benchmark slow, but reduces the chance of per-minute rate-limit failures.
+Increase `max_react_steps` or `max_audit_rounds` only if you prefer deeper
+analysis over shorter runtimes and have enough quota.
 `max_react_steps` was raised from 3 to 8 because, with 3 steps, the ReAct
 analyst used every step on queries and never reached a final answer in any of
 the 30 benchmark cases.
@@ -100,17 +102,32 @@ Groq retries are disabled so a failed request is not silently repeated and
 counted again.
 
 All current agent roles use Groq with a deliberately small response budget.
-If Gemini is selected later, its requests are paced at approximately four per
-minute to stay below the free-tier five-requests-per-minute limit. A single
-quota retry is allowed when the API provides a retry delay.
+Gemini and OpenRouter support remains in `src/llm_client.py`, but neither
+provider is active in the current role configuration. If Gemini is selected
+later, its requests are paced at approximately four per minute to stay below
+the free-tier five-requests-per-minute limit. A single quota retry is allowed
+when the API provides a retry delay.
 Groq requests are paced at 65 seconds apart and SDK retries are disabled.
 This intentionally prioritizes staying below the reported 1,000
 output-tokens-per-minute budget over speed. The larger response budgets give
-the agents enough room to complete their required formats. The agents report the cause and affected entity; scenario dollar
-values remain ground-truth evaluation fields rather than model predictions.
+the agents enough room to complete their required formats. The agents report the cause and affected entity; scenario dollar values remain
+ground-truth evaluation fields rather than model predictions.
 
 `config.json` identifies the settings file and stores database-level settings.
 Normally, edit `llm_settings.json` rather than `config.json` for model behavior.
+
+## Data flow
+
+The read-only CSV files in `archive/` are converted by `build_base_db.py` into
+`olist_base.db`. `injector.py` copies that baseline into isolated scenario
+databases, applies controlled anomalies or leaves a clean control unchanged,
+and writes the ground-truth metadata to `scenarios/labels.json`.
+
+`evaluations.py` selects the 30 benchmark scenarios, sends prompts to the
+Groq-configured roles, and executes SQL locally through `src/tools.py`; only
+schema context, generated SQL, and bounded SQL observations are included in
+LLM prompts. Results are saved to part CSVs or `evaluations_results.csv`,
+`merge_results.py` combines split files, and `app.py` displays the results.
 
 ## Build the baseline database
 
@@ -229,10 +246,11 @@ Each share mixes discount, shipping, and control scenarios and writes to
 that already completed without errors are skipped.
 
 To run a second share on the same machine with another key, override the key
-for that terminal only:
+for that PowerShell process only:
 
 ```bash
-GROQ_API_KEY=other_key python evaluations.py --part 2
+$env:GROQ_API_KEY = "other_key"
+python evaluations.py --part 2
 ```
 
 ### Rerun only ReAct
