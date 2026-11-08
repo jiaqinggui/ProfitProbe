@@ -4,12 +4,32 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 import altair as alt
-from score_results import SCENARIO_TYPES, _status
+from score_results import SCENARIO_TYPES, _status as _keyword_status
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 RESULTS_PATH = PROJECT_ROOT / "evaluations_results.csv"
 LABELS_PATH = PROJECT_ROOT / "scenarios" / "labels.json"
+MANUAL_REVIEW_PATH = PROJECT_ROOT / "manual_review.csv"
+
+
+def _load_manual_review() -> dict[tuple[int, str], str]:
+    """Hand-corrected labels that override the keyword scores."""
+    if not MANUAL_REVIEW_PATH.exists():
+        return {}
+    review = pd.read_csv(MANUAL_REVIEW_PATH)
+    return {
+        (int(row.scenario_id), row.system): row.final_label
+        for row in review.itertuples()
+    }
+
+
+MANUAL_LABELS = _load_manual_review()
+
+
+def _status(row: pd.Series, system_key: str, scenario_type: str) -> str:
+    override = MANUAL_LABELS.get((int(row["scenario_id"]), system_key))
+    return override or _keyword_status(row, system_key, scenario_type)
 
 SYSTEMS = (
     ("oneshot", "One-shot"),
