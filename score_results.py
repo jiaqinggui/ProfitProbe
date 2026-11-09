@@ -12,6 +12,10 @@ final grade. Each answer gets one of these statuses:
 - error: the system raised an error
 
 An answer that lists several entities still counts as naming the entity.
+
+Labels the group corrected by hand are kept in manual_review.csv and replace
+the keyword label, as long as the answer still gets the keyword label that was
+reviewed (a rerun answer is scored afresh and flagged for review).
 """
 
 import re
@@ -22,6 +26,7 @@ from evaluations import PROJECT_ROOT, RESULTS_PATH
 
 
 SCORES_PATH = PROJECT_ROOT / "evaluation_scores.csv"
+MANUAL_REVIEW_PATH = PROJECT_ROOT / "manual_review.csv"
 SYSTEMS = {"oneshot": "One-shot", "react": "ReAct", "multi_agent": "Multi-agent"}
 SCENARIO_TYPES = {
     "Wrong discount code": "discount",
@@ -86,17 +91,43 @@ def _status(row: pd.Series, system: str, scenario_type: str) -> str:
     return score_answer(scenario_type, str(row["ground_truth_entity"]), answer)
 
 
+def load_manual_review() -> dict[tuple[int, str], tuple[str, str]]:
+    """Map (scenario_id, system) to (reviewed keyword label, corrected label)."""
+    if not MANUAL_REVIEW_PATH.exists():
+        return {}
+    review = pd.read_csv(MANUAL_REVIEW_PATH)
+    return {
+        (int(item.scenario_id), item.system): (item.keyword_label, item.final_label)
+        for item in review.itertuples()
+    }
+
+
 def score_results() -> pd.DataFrame:
     if not RESULTS_PATH.exists():
         raise SystemExit(f"{RESULTS_PATH.name} not found. Run merge_results.py first.")
     results = pd.read_csv(RESULTS_PATH)
+    manual = load_manual_review()
     rows = []
+    applied = 0
     for _, row in results.iterrows():
         scenario_type = SCENARIO_TYPES[row["ground_truth_cause"]]
-        scored = {"scenario_id": row["scenario_id"], "scenario_type": scenario_type}
+        scenario_id = int(row["scenario_id"])
+        scored = {"scenario_id": scenario_id, "scenario_type": scenario_type}
         for system in SYSTEMS:
-            scored[f"{system}_score"] = _status(row, system, scenario_type)
+            label = _status(row, system, scenario_type)
+            review = manual.get((scenario_id, system))
+            if review and review[0] == label:
+                label = review[1]
+                applied += 1
+            elif review:
+                print(
+                    f"Scenario {scenario_id} {system}: answer changed since manual "
+                    f"review (now '{label}'); review it again."
+                )
+            scored[f"{system}_score"] = label
         rows.append(scored)
+    if manual:
+        print(f"Applied {applied} of {len(manual)} manual corrections from {MANUAL_REVIEW_PATH.name}.")
     scores = pd.DataFrame(rows).sort_values("scenario_id")
     scores.to_csv(SCORES_PATH, index=False)
     return scores

@@ -1,10 +1,34 @@
-# Running ProfitProbe
+# ProfitProbe
 
-ProfitProbe compares three LLM-based data-analysis architectures:
+ProfitProbe (SMU IS469, group G1T2) tests whether LLM agents can explain why an
+e-commerce business's profit fell. We plant known problems in copies of the
+Olist store database, ask the same 30 questions to three designs, and score
+every answer against the planted ground truth:
 
 1. One-shot Text-to-SQL
 2. Single Groq ReAct analyst
 3. Multi-agent workflow with Groq planner, analyst, auditor, and reporter
+
+All roles use the same model (`qwen/qwen3.8-27b` on Groq) at temperature 0.
+
+## Quick start
+
+```bash
+python -m venv .venv && source .venv/bin/activate   # Windows: see below
+pip install -r requirements.txt
+echo "GROQ_API_KEY=your_key" > .env
+python build_base_db.py          # Olist CSVs in archive/ -> olist_base.db
+python injector.py               # 80 scenario databases + labels.json
+python evaluations.py --part 1   # your 10-case share (parts 1-3)
+python merge_results.py          # combine the three part files
+python score_results.py          # scores, with manual corrections applied
+streamlit run app.py             # browse every answer beside the ground truth
+```
+
+The Olist data is included in `archive/` (source:
+[Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)). The
+scenario injection is deterministic, so every machine generates the same
+scenarios. The sections below explain each step.
 
 ## Install dependencies
 
@@ -279,6 +303,22 @@ account on a rolling window, so a 10-case share may not finish in one
 session. A `RateLimitError` mentioning "tokens per day (TPD)" means the key is
 used up for now; rerun the same command a few hours later to finish.
 
+### Retry runs that ended without an answer
+
+`--retry-failed` reruns every ReAct or multi-agent run in your share that has
+no answer, whatever the error (format, request too large, daily limit,
+timeout) or because it hit the step limit. Answers already given are kept.
+`--only react` or `--only multi` limits it to one system:
+
+```bash
+python evaluations.py --part 1 --rerun-agents --retry-failed --only multi
+```
+
+Our final multi-agent results used this after the ReAct loop was fixed to
+accept small format variations, ask the model to retry an unreadable reply,
+request a final answer on the last step, and trim the oldest query results so
+prompts stay under Groq's 7,000-token input limit.
+
 Once all three part files are in the repository root, combine them:
 
 ```bash
@@ -303,7 +343,11 @@ system, and writes per-scenario statuses to `evaluation_scores.csv`:
 (ReAct ran out of steps), and `error`.
 
 Scoring uses keyword rules, so treat it as a first pass and review the
-answers in the Streamlit app before reporting. An answer that reports no
+answers in the Streamlit app before reporting. Labels corrected by hand are
+recorded, with a reason, in `manual_review.csv`; `score_results.py` and the
+Streamlit app both apply them. A correction is applied only while the answer
+still gets the keyword label that was reviewed, so a rerun answer is scored
+afresh and the script asks for it to be reviewed again. An answer that reports no
 cause scores as correct on a control, so a system that rarely commits to a
 cause can look strong on controls; compare the control scores with the
 discount and shipping scores.
