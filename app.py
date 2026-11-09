@@ -51,21 +51,21 @@ STATUS_LABELS = {
 }
 OUTCOME_ORDER = (
     "Roughly correct",
-    "Cause only",
+    "Cause found; entity missing",
     "Wrong / false cause",
     "No final answer",
     "Run error",
 )
 OUTCOME_COLORS_LIGHT = {
     "Roughly correct": "#4B9B73",
-    "Cause only": "#D7B84B",
+    "Cause found; entity missing": "#D7B84B",
     "Wrong / false cause": "#D66A6A",
     "No final answer": "#9A86B8",
     "Run error": "#8793A0",
 }
 OUTCOME_COLORS_DARK = {
     "Roughly correct": "#347B55",
-    "Cause only": "#95700B",
+    "Cause found; entity missing": "#95700B",
     "Wrong / false cause": "#A94343",
     "No final answer": "#71529A",
     "Run error": "#56616C",
@@ -121,58 +121,6 @@ def _is_dark_theme() -> bool:
         return st.get_option("theme.base") == "dark"
 
 
-def _style_performance_table(
-    table: pd.DataFrame,
-    default_denominator: int,
-    dark_theme: bool,
-):
-    if dark_theme:
-        good = ("#214532", "#D3F1DC")
-        caution = ("#4A3D1D", "#FFE7A3")
-        poor = ("#512D2D", "#FFD3D0")
-    else:
-        good = ("#E3F1E8", "#24583B")
-        caution = ("#FFF4D6", "#6C5615")
-        poor = ("#F9E5E3", "#7A302A")
-
-    def _style_row(row: pd.Series) -> list[str]:
-        denominator = int(row.get("Cases", default_denominator))
-        denominator = max(denominator, 1)
-        completed_ratio = int(row["Completed"]) / denominator
-        if completed_ratio >= 0.9:
-            completed_style = good
-        elif completed_ratio >= 0.7:
-            completed_style = caution
-        else:
-            completed_style = poor
-
-        correct_count = int(str(row["Rough correct"]).split("/")[0].strip())
-        correct_ratio = correct_count / denominator
-        if correct_ratio >= 0.7:
-            correct_style = good
-        elif correct_ratio >= 0.4:
-            correct_style = caution
-        else:
-            correct_style = poor
-
-        no_answer_style = good if int(row["No final answer"]) == 0 else caution
-        error_style = good if int(row["Errors"]) == 0 else poor
-        styles = [""] * len(row)
-        for column_name, colors in (
-            ("Completed", completed_style),
-            ("No final answer", no_answer_style),
-            ("Errors", error_style),
-            ("Rough correct", correct_style),
-        ):
-            if column_name in row.index:
-                styles[row.index.get_loc(column_name)] = (
-                    f"background-color: {colors[0]}; color: {colors[1]}"
-                )
-        return styles
-
-    return table.style.apply(_style_row, axis=1)
-
-
 st.set_page_config(page_title="ProfitProbe Results", layout="wide")
 st.title("ProfitProbe Workflow Comparison")
 st.write("Compare three analysis approaches across the benchmark scenarios.")
@@ -210,7 +158,8 @@ with overview_tab:
         "11–20 are shipping cases, and 71–80 are clean controls. Scenarios 21–70 are "
         "generated for other anomaly types and are not part of this benchmark."
     )
-    summary_rows = []
+    completion_rows = []
+    answer_quality_rows = []
     statuses_by_system = {}
     for system_key, system_name in SYSTEMS:
         statuses = [
@@ -218,39 +167,57 @@ with overview_tab:
             for _, row in results.iterrows()
         ]
         statuses_by_system[system_key] = statuses
-        summary_rows.append(
+        completed_count = sum(status not in {"error", "no_answer"} for status in statuses)
+        completion_rows.append(
             {
                 "Approach": system_name,
-                "Completed": sum(status not in {"error", "no_answer"} for status in statuses),
-                "No final answer": statuses.count("no_answer"),
-                "Errors": statuses.count("error"),
-                "Rough correct": f"{statuses.count('correct')} / {len(results)}",
+                "Completed": f"{completed_count} / {len(results)}",
+                "No final answer": f"{statuses.count('no_answer')} / {len(results)}",
+                "Run error": f"{statuses.count('error')} / {len(results)}",
+            }
+        )
+        answer_quality_rows.append(
+            {
+                "Approach": system_name,
+                "Roughly correct": f"{statuses.count('correct')} / {completed_count}",
+                "Cause found; entity missing": (
+                    f"{statuses.count('cause_only')} / {completed_count}"
+                ),
+                "Wrong / false cause": (
+                    f"{statuses.count('wrong') + statuses.count('false_cause')} / "
+                    f"{completed_count}"
+                ),
             }
         )
 
     st.subheader("Overall results")
     st.caption(
-        "Correct counts use the project's keyword-based scorer and are a rough measure. "
-        "Step-limit cases and run errors are counted separately."
+        "Run completion counts use all loaded cases. Answer quality is calculated only "
+        "among completed runs. 'Cause found; entity missing' means the answer named the "
+        "cause but not the expected affected entity. Outcome labels use the project's "
+        "rough keyword-based scorer."
     )
-    summary_table = pd.DataFrame(summary_rows)
-    st.dataframe(
-        summary_table,
-        column_config={
-            "Rough correct": st.column_config.TextColumn(
-                "Rough correct",
-                alignment="center",
-            )
-        },
-        use_container_width=True,
-        hide_index=True,
-    )
+    completion_column, quality_column = st.columns(2)
+    with completion_column:
+        st.markdown("**Run completion**")
+        st.dataframe(
+            pd.DataFrame(completion_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
+    with quality_column:
+        st.markdown("**Answer quality · completed runs**")
+        st.dataframe(
+            pd.DataFrame(answer_quality_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
 
     def _outcome_group(status: str) -> str:
         if status == "correct":
             return "Roughly correct"
         if status == "cause_only":
-            return "Cause only"
+            return "Cause found; entity missing"
         if status in {"wrong", "false_cause"}:
             return "Wrong / false cause"
         if status == "no_answer":
@@ -317,29 +284,68 @@ with overview_tab:
                 _status(row, system_key, scenario_type)
                 for _, row in type_results.iterrows()
             ]
+            correct_count = statuses.count("correct")
+            partial_count = statuses.count("cause_only")
+            wrong_count = statuses.count("wrong") + statuses.count("false_cause")
+            no_answer_count = statuses.count("no_answer")
+            error_count = statuses.count("error")
+            unsuccessful_count = sum(
+                (wrong_count, no_answer_count, error_count)
+            )
             scenario_type_rows.append(
                 {
                     "Scenario type": type_label,
                     "Approach": system_name,
                     "Cases": len(type_results),
-                    "Completed": sum(
-                        status not in {"error", "no_answer"} for status in statuses
+                    "Roughly correct": correct_count,
+                    "Cause found; entity missing": partial_count,
+                    "Unsuccessful": unsuccessful_count,
+                    "Unsuccessful breakdown": (
+                        f"Wrong {wrong_count} · no answer {no_answer_count} · "
+                        f"errors {error_count}"
                     ),
-                    "No final answer": statuses.count("no_answer"),
-                    "Errors": statuses.count("error"),
-                    "Rough correct": f"{statuses.count('correct')} / {len(type_results)}",
                 }
             )
 
     st.subheader("Results by scenario type")
+    st.caption(
+        "Each neutral bar shows the count out of the cases in that group, not a performance "
+        "grade. Unsuccessful combines wrong answers, no final answers, and run errors; the "
+        "text column breaks those cases out. Outcome labels use the project's rough "
+        "keyword-based scorer."
+    )
     scenario_type_table = pd.DataFrame(scenario_type_rows)
+    max_cases_per_type = max(
+        (len(results[result_types == scenario_type]) for scenario_type, _ in SCENARIO_TYPES_DISPLAY),
+        default=1,
+    )
     st.dataframe(
-        _style_performance_table(scenario_type_table, len(results), dark_theme),
+        scenario_type_table,
         column_config={
-            "Rough correct": st.column_config.TextColumn(
-                "Rough correct",
-                alignment="center",
-            )
+            "Roughly correct": st.column_config.ProgressColumn(
+                "Roughly correct",
+                help="Count of roughly correct answers. Bar length shows count, not a grade.",
+                min_value=0,
+                max_value=max_cases_per_type,
+                format="%d",
+                color="#8793A0",
+            ),
+            "Cause found; entity missing": st.column_config.ProgressColumn(
+                "Cause found; entity missing",
+                help="Count of partial answers. Bar length shows count, not a grade.",
+                min_value=0,
+                max_value=max_cases_per_type,
+                format="%d",
+                color="#8793A0",
+            ),
+            "Unsuccessful": st.column_config.ProgressColumn(
+                "Unsuccessful",
+                help="Wrong answers, no final answers, and run errors. Bar length shows count, not a grade.",
+                min_value=0,
+                max_value=max_cases_per_type,
+                format="%d",
+                color="#8793A0",
+            ),
         },
         use_container_width=True,
         hide_index=True,
