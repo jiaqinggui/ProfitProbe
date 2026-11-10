@@ -11,12 +11,44 @@ every answer against the planted ground truth:
 
 All roles use the same model (`qwen/qwen3.8-27b` on Groq) at temperature 0.
 
-## Quick start
+## Reproduce our results (no API key needed)
+
+Our final answers are committed in `evaluations_results_part1.csv` to `part3.csv`,
+and the hand corrections in `manual_review.csv`. To see the reported scores
+(One-shot 9/30, ReAct 4/30, Multi-agent 3/30) and browse every answer:
+
+```bash
+python -m venv .venv && source .venv/bin/activate   # Python 3.10+; Windows: see below
+pip install -r requirements.txt
+python build_base_db.py          # about 10 seconds; needed for the questions shown in the app
+python injector.py               # same 80 scenarios on every machine
+python merge_results.py          # -> evaluations_results.csv
+python score_results.py          # prints the scores
+python -m streamlit run app.py   # use the venv's Streamlit, not a global/Anaconda one
+```
+
+Run Streamlit through the virtual environment: an older global Streamlit
+(for example Anaconda's 1.45) fails with `TextColumn() got an unexpected
+keyword argument 'alignment'`.
+
+## Quick start (rerun the evaluation)
+
+Rerunning the agents calls Groq and needs your own key. Create a free key at
+[console.groq.com/keys](https://console.groq.com/keys); the model
+(`qwen/qwen3.8-27b`) runs on Groq's servers, so nothing is downloaded.
+
+**Determinism.** `injector.py` uses no randomness: it picks each scenario's
+week, category and seller with fixed SQL ordering rules, so every machine
+builds identical scenario databases and `labels.json` (the `seed` in
+`config.json` is not used). All model settings are fixed in `llm_settings.json`
+(temperature 0, top-p 0.1). A hosted model can still vary slightly between
+calls even at temperature 0, so a rerun may not match our answers word for
+word; the committed part CSVs are the exact answers we scored.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: see below
 pip install -r requirements.txt
-echo "GROQ_API_KEY=your_key" > .env
+cp .env.example .env             # then put your GROQ_API_KEY in .env
 python build_base_db.py          # Olist CSVs in archive/ -> olist_base.db
 python injector.py               # 80 scenario databases + labels.json
 python evaluations.py --part 1   # your 10-case share (parts 1-3)

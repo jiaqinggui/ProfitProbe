@@ -9,3 +9,6 @@ __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
 evaluation_scores.csv
+.DS_Store
+.claude/
+.agents/
