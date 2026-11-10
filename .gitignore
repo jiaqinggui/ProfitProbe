@@ -5,6 +5,8 @@ scenarios/
 evaluations_results*.csv
 !evaluations_results_part[123].csv
 trial_results_*.csv
+!PastResults/evaluations_results*.csv
+!PastResults/trial_results_*.csv
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/

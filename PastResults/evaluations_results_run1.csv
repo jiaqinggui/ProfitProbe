@@ -1,0 +1,119 @@
+evaluation_case,scenario_id,ground_truth_cause,ground_truth_entity,ground_truth_dollar_impact,oneshot_answer,oneshot_sql,react_answer,react_steps,react_query_count,multi_agent_answer,multi_agent_audit_rounds,multi_agent_query_count,multi_agent_error,oneshot_error,react_error
+1,1,Wrong discount code,bed_bath_table,13855.18,"Root Cause: Excessive discount amounts applied to order items.
+Affected Entity: Order items in 2017-W32.
+Evidence: The query results show that for every listed item, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). For example, in the first row, the price is 366.40 and the unit cost is 219.84, yielding a gross margin of 146.56. However, the discount amount is 329.76, which is more than double the gross margin, resulting in a negative item profit of -183.20. This pattern holds across all displayed records, indicating that discounts were set at levels that eroded all potential profit and resulted in a loss on each sale.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W32'
+ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,"**Report: Investigation of Profit Decline in 2017-W32**
+
+**Verified Root Cause:**
+A surge in high-value discount codes, specifically the code ""PROMO_BUG,"" applied to order items in 2017-W32.
+
+**Affected Entity:**
+Order Items (specifically those associated with discount code ""PROMO_BUG"").
+
+**Supporting Explanation:**
+Data analysis confirms that gross profit dropped significantly in 2017-W32 compared to surrounding weeks. This decline correlates directly with a spike in total discounts, which were zero in all other weeks from 2017-W28 to 2017-W36. Further investigation identified that all discounts in 2017-W32 were attributed to the single discount code ""PROMO_BUG,"" which was applied to 135 items. This reduction in net revenue per sale directly lowered gross profit.
+
+**Auditor Status:**
+Passed. The auditor verified that the SQL results clearly identify the root cause and that the provided data fully supports the conclusion.",1.0,3.0,,,
+2,2,Wrong discount code,health_beauty,12434.28,"Root Cause: Excessive discounting.
+Affected Entity: Multiple products across various categories.
+Evidence: The query results show that for every listed item in 2017-W33, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed records, indicating that the discounts applied during this period were larger than the profit margin, directly causing the sharp fall in profit.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W33'
+ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,
+3,3,Wrong discount code,sports_leisure,7694.5,"Root Cause: Excessive discounting.
+Affected Entity: Order items in 2017-W34.
+Evidence: The query results show that for every listed item, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). For example, in the first record, the gross margin is 258.00 (645.00 - 387.00), but the discount is 580.50, resulting in a negative item profit of -322.50. This pattern holds across all displayed rows, indicating that discounts were applied at a level that completely eroded and reversed the profit on these sales.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN orders o ON oi.order_id = o.order_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W34'
+ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,
+4,4,Wrong discount code,furniture_decor,6858.59,"Root Cause: Excessive discounting.
+Affected Entity: Order items in 2017-W35.
+Evidence: The query results show that for every listed item, the `discount_amount` is significantly larger than the gross margin (price minus unit cost). For example, in the first row, the price is 284.90 and unit cost is 170.94 (margin 113.96), but the discount is 256.41, resulting in a negative item profit of -142.45. This pattern holds across all displayed records, indicating that discounts were applied at a rate that exceeded the potential profit, directly causing the sharp fall in profit.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN orders o ON oi.order_id = o.order_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W35'
+ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,"**Report: Investigation of Profit Decline in 2017-W35**
+
+**Status:** UNVERIFIED
+
+**Root Cause:**
+No verified root cause has been identified.
+
+**Affected Entity:**
+2017-W35 (Week 35 of 2017)
+
+**Explanation:**
+The investigation failed to retrieve the necessary data to determine the cause of the profit decline. The initial query only covered weeks W01 through W25, missing the target week W35. Subsequent attempts to query the relevant period (August 2017 onwards) failed due to SQL syntax errors (trailing characters in the query string). Consequently, no data was retrieved for 2017-W35 to support any of the proposed hypotheses.
+
+**Auditor Verdict:**
+FAIL",1.0,3.0,,,
+5,5,Wrong discount code,computers_accessories,7853.63,"Root Cause: Excessive discounting.
+Affected Entity: Order items in 2017-W40.
+Evidence: The query results show that for every listed item, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed records, indicating that the discounts applied during this period were larger than the profit margin, directly causing the sharp fall in profit.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W40'
+ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,"**Root Cause:** A surge in discount codes applied to order items.
+**Affected Entity:** Order items in 2017-W40.
+**Supporting Explanation:** Data indicates that 2017-W40 was the only week in the observed range (2017-W38 to 2017-W42) with non-zero discounts. Specifically, 62 items in that week had discounts applied, which reduced the average item profit compared to surrounding weeks where discounts were zero. This reduction in net revenue per sale directly lowered the gross profit for the week.
+**Auditor Status:** Passed.",1.0,3.0,,,
+6,6,Wrong discount code,toys,8515.75,"Root Cause: Excessive discounting.
+Affected Entity: Multiple products across various categories.
+Evidence: The query results show that for every item listed in 2017-W41, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed line items, indicating that the discounts were deeper than the profit margin, thereby eroding profit.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W41'
+ORDER BY item_profit ASC;",The analyst reached the 3-step limit without a verified final answer.,3.0,3.0,,,,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,
+7,7,Wrong discount code,auto,5399.56,,,,,,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199238, Requested 871. Please try again in 47.088s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198657, Requested 2926. Please try again in 11m23.856s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199388, Requested 1684. Please try again in 7m43.104s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
+8,8,Wrong discount code,housewares,9129.95,,,,,,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199669, Requested 965. Please try again in 4m33.888s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199087, Requested 963. Please try again in 21.6s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199819, Requested 1673. Please try again in 10m44.544s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
+9,9,Wrong discount code,baby,4642.57,,,,,,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199217, Requested 973. Please try again in 1m22.08s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199513, Requested 954. Please try again in 3m21.744s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199368, Requested 982. Please try again in 2m31.2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
+10,10,Wrong discount code,stationery,3476.93,,,,,,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199648, Requested 965. Please try again in 4m24.815999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199067, Requested 1137. Please try again in 1m28.128s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199799, Requested 1484. Please try again in 9m14.256s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
+11,11,Shipping delay,0015a82c2db000af6aaaf3ae2ecb0532,0.0,,,,,,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199196, Requested 1071. Please try again in 1m55.344s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199498, Requested 1000. Please try again in 3m35.136s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}","RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199347, Requested 1044. Please try again in 2m48.912s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"

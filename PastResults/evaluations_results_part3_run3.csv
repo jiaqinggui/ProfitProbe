@@ -1,0 +1,207 @@
+evaluation_case,scenario_id,ground_truth_cause,ground_truth_entity,ground_truth_dollar_impact,oneshot_answer,oneshot_sql,react_max_steps,react_answer,react_steps,react_query_count,multi_agent_analyst_steps,multi_agent_error,multi_agent_answer,multi_agent_audit_rounds,multi_agent_query_count,react_error
+3,3,Wrong discount code,sports_leisure,7694.5,"Root Cause: Excessive discounting.
+Affected Entity: Order items in 2017-W34.
+Evidence: The query results show that for every listed item, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). For example, in the first record, the gross margin is 258.00 (645.00 - 387.00), but the discount is 580.50, resulting in a negative item profit of -322.50. This pattern holds across all displayed rows, indicating that discounts were applied at a level that completely eroded and reversed the profit on these sales.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN orders o ON oi.order_id = o.order_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W34'
+ORDER BY item_profit ASC;",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,,
+6,6,Wrong discount code,toys,8515.75,"Root Cause: Excessive discounting.
+Affected Entity: Multiple products across various categories.
+Evidence: The query results show that for every item listed in 2017-W41, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed transactions, indicating that the discounts applied during this period were larger than the profit margin on the goods sold.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN orders o ON oi.order_id = o.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W41'
+ORDER BY item_profit ASC;",8,The sharp profit drop in 2017-W41 was caused by a,5.0,4.0,8,APITimeoutError: Request timed out.,,,,
+9,9,Wrong discount code,baby,4642.57,"Root Cause: Excessive discounting.
+Affected Entity: Multiple products across various price points.
+Evidence: The query results show that for every listed item in 2018-W10, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed records, indicating that the discounts applied were larger than the profit margin available on the sale price.","SELECT
+    oi.order_id,
+    oi.product_id,
+    oi.price,
+    p.unit_cost,
+    oi.discount_amount,
+    (oi.price - p.unit_cost - oi.discount_amount) AS item_profit
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+JOIN orders o ON oi.order_id = o.order_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2018-W10'
+ORDER BY item_profit ASC;",8,"The sharp profit fall in 2018-W10 was caused by a promotional error identified by the discount code ""PROMO_BUG"". This code was applied to 37 items in the ""baby"" product category, granting an average discount of approximately 90% of the item price. This excessive discounting resulted in a negative gross profit per item for these sales, turning them into losses and significantly dragging down the total weekly profit compared to adjacent weeks which had no discounts.",8.0,7.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,,
+12,12,Shipping delay,00fc707aaaad2d31347cf883cd2dfe10,0.0,"The provided SQL result for 2017-W33 does not contain comparative data from other weeks or a baseline, so it is impossible to verify a deterioration in delivery performance or margin based solely on this output. The query returns a single row with an average delivery time of approximately 11.1 days and a margin of approximately 40.2%, but without prior period data, no decline can be confirmed. Therefore, the root cause of any alleged deterioration cannot be established from the provided evidence.","SELECT
+    strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
+    COUNT(o.order_id) AS total_orders,
+    SUM(CASE WHEN o.order_status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
+    SUM(CASE WHEN o.order_status = 'canceled' THEN 1 ELSE 0 END) AS canceled_orders,
+    AVG(julianday(o.order_delivered_customer_date) - julianday(o.order_purchase_timestamp)) AS avg_delivery_days,
+    SUM(oi.price - p.unit_cost - oi.discount_amount) AS gross_profit,
+    SUM(oi.price) AS total_revenue,
+    SUM(oi.price - p.unit_cost - oi.discount_amount) / NULLIF(SUM(oi.price), 0) AS margin
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W33'
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,"REPORT: 2017-W33 Performance Deterioration
+
+Status: UNVERIFIED
+
+Root Cause: Unverified. The investigation failed to produce a final synthesized conclusion.
+
+Affected Entity: Order Margin and Delivery Performance (2017-W33)
+
+Supporting Explanation:
+The auditor rejected the analyst's work because the investigation reached the step limit without delivering a final answer. While preliminary data indicated that average gross profit per order decreased from 2017-W32 to 2017-W33, and average delivery days increased slightly, the specific root cause was not formally established or reported. The data suggested potential drivers such as lower average item prices and an unfavorable shift in category mix (specifically a decrease in high-margin categories like 'cool_stuff' and 'watches_gifts'), but these observations were not consolidated into a verified final conclusion.
+
+Auditor Verdict: FAIL",1.0,8.0,
+15,15,Shipping delay,038b75b729c8a9a04b0d07cba7eabe86,0.0,"The provided SQL result for 2017-W40 does not contain comparative data from previous weeks or a baseline, making it impossible to verify a deterioration in delivery performance or margin based solely on this output. The query returns a single row with an average delivery time of 12.22 days and a margin of 40.66%, but without historical context or a specific anomaly flag in the data, no root cause for a decline can be established from this evidence alone.","SELECT
+    strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
+    COUNT(o.order_id) AS total_orders,
+    SUM(CASE WHEN o.order_status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
+    SUM(CASE WHEN o.order_status = 'canceled' THEN 1 ELSE 0 END) AS canceled_orders,
+    AVG(julianday(o.order_delivered_customer_date) - julianday(o.order_purchase_timestamp)) AS avg_delivery_days,
+    SUM(oi.price - p.unit_cost - oi.discount_amount) AS gross_profit,
+    SUM(oi.price) AS total_revenue,
+    SUM(oi.price - p.unit_cost - oi.discount_amount) / NULLIF(SUM(oi.price), 0) AS margin
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W40'
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The premise that delivery performance and margin deteriorated in 2017-W40 is not supported by the data. The gross profit margin for 2017-W40 (approx. 40.7%) was actually higher than the previous week (approx. 40.0%) and the following week (approx. 40.5%). While the average delivery time increased slightly,8.0,7.0,8,"APIStatusError: Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7148, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",,,,
+18,18,Shipping delay,05e107217c7266362fd44b75b2cd4cc4,0.0,"The investigation could not be completed because the provided SQL query failed to execute. The error ""no such column: oi.product"" indicates a syntax error in the JOIN condition (likely intended to be `oi.product_id = p.product_id`). Consequently, no data was retrieved, and the root cause of the 2018-W09 performance deterioration cannot be verified from the provided evidence.","SELECT
+    strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
+    COUNT(o.order_id) AS total_orders,
+    SUM(CASE WHEN o.order_status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
+    SUM(CASE WHEN o.order_status = 'canceled' THEN 1 ELSE 0 END) AS canceled_orders,
+    AVG(
+        CASE
+            WHEN o.order_status = 'delivered'
+            THEN (julianday(o.order_delivered_customer_date) - julianday(o.order_purchase_timestamp))
+            ELSE NULL
+        END
+    ) AS avg_delivery_days,
+    SUM(oi.price - p.unit_cost - oi.discount_amount) AS gross_profit,
+    SUM(oi.price) AS total_revenue,
+    (SUM(oi.price - p.unit_cost - oi.discount_amount) / NULLIF(SUM( oi.price), 0)) * 100.0
+        - (
+            SELECT
+                (SUM(
+                    CASE
+                        WHEN strftime('%Y', o2.order_purchase_timestamp) = '2018'
+                        THEN oi2.price - p2.unit_cost - oi2.discount_amount
+                        ELSE 0
+                    END
+                ) / NULLIF(SUM(
+                    CASE
+                        WHEN strftime('%Y', o2.order_purchase_timestamp) = '2018'
+                        THEN oi2.price
+                        ELSE 0
+                    END
+                ), 0)) * 100.0
+            FROM orders o2
+            JOIN order_items oi2 ON o2.order_id = oi2.order_id
+            JOIN products p2 ON oi2.product_id = p2.product_id
+        ) AS margin_vs_2018_avg
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product;",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,ValueError: The LLM returned an action without Action Input.,,,,
+21,71,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W32, the data shows a gross profit of 52,493.48, an average price of 121.14, and an **average unit cost of 72.18**. The **average review_score is 4.25**, which is slightly below the 4.5+ range often seen in high-performing periods, and there were **6 canceled orders** out of 927.
+
+The slight performance change (implied by the question) is most likely driven by the **average unit cost (72.18)** being relatively high compared to the average price (121.14), compressing the margin per item. Additionally, the **average review score of 4.25** suggests a minor dip in customer satisfaction or product quality perception during that week, which can correlate with performance fluctuations. The low number of cancellations (6) indicates that order fulfillment issues were not the primary driver.
+
+**Root Cause:** Elevated average unit costs and a slightly lower average review score.
+**Affected Entity/Category:** Product pricing/cost structure and customer satisfaction metrics.","SELECT
+  strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
+  COUNT(DISTINCT o.order_id) AS total_orders,
+  SUM(oi.price - p.unit_cost - oi.discount_amount) AS gross_profit,
+  AVG(oi.price) AS avg_price,
+  AVG(p.unit_cost) AS avg_unit_cost,
+  AVG(oi.discount_amount) AS avg_discount,
+  SUM(oi.freight_value) AS total_freight,
+  COUNT(DISTINCT CASE WHEN o.order_status = 'delivered' THEN o.order_id END) AS delivered_orders,
+  COUNT(DISTINCT CASE WHEN o.order_status = 'canceled' THEN o.order_id END) AS canceled_orders,
+  AVG(r.review_score) AS avg_review_score
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+LEFT JOIN order_reviews r ON o.order_id = r.order_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W32'
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,"REPORT: 2017-W32 Performance Investigation
+
+Status: UNVERIFIED
+
+Root Cause: Unverified. The investigation failed to identify a specific root cause for the performance change in 2017-W32.
+
+Affected Entity: Unverified. No specific entity (e.g., product category, region, or payment type) was confirmed as the driver of the change.
+
+Explanation: The analyst reached the step limit without providing a verified final answer. While data indicated a spike in ""unavailable"" orders (12 in W32 vs. 4-6 in surrounding weeks) and a drop in delivered orders (911 vs. 954/1008), the investigation did not conclude with a specific root cause. Queries regarding product category mix for unavailable orders returned no rows, and other hypotheses regarding payment types, discounts, or geographic distribution were not conclusively verified as the primary driver.
+
+Auditor Verdict: FAIL. The auditor determined the conclusion is unverified due to the lack of a specific, supported root cause and affected entity.",1.0,8.0,
+24,74,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W35, the data shows a gross profit of 71,183.99, an average price of 159.66, and an average unit cost of 97.21. The average discount is 0.0, and there were 4 canceled orders out of 1,005 total orders.
+
+However, the query and result provided **only contain data for the single week 2017-W35**. To determine why performance *changed* (implying a comparison to a previous period or baseline), data from adjacent weeks (e.g., 2017-W34 or 2017-W36) or a historical average is required. The current evidence does not include comparative data, nor does it isolate specific drivers of change (such as a shift in product mix, pricing strategy, or cost structure) relative to a prior period.
+
+Therefore, the root cause of the performance change cannot be verified from the provided evidence alone. The data confirms the metrics for that specific week but does not support a causal explanation for a change relative to other periods.","SELECT
+  strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
+  COUNT(DISTINCT o.order_id) AS total_orders,
+  SUM(oi.price - p.unit_cost - oi.discount_amount) AS gross_profit,
+  AVG(oi.price) AS avg_price,
+  AVG(p.unit_cost) AS avg_unit_cost,
+  AVG(oi.discount_amount) AS avg_discount,
+  SUM(oi.freight_value) AS total_freight,
+  COUNT(DISTINCT CASE WHEN o.order_status = 'delivered' THEN o.order_id END) AS delivered_orders,
+  COUNT(DISTINCT CASE WHEN o.order_status = 'canceled' THEN o.order_id END) AS canceled_orders
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W35'
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,"APIStatusError: Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7345, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",,,,
+27,77,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W42, the data shows a gross profit of 66,018.00, an average price of 122.49, and an average unit cost of 73.22. The average discount is 0.0, and there were 4 canceled orders out of 1,129 total.
+
+However, the query and result only provide data for the single week 2017-W42. To determine why performance *changed* (implying a comparison to a previous period or baseline), data from other weeks is required. The provided evidence does not contain comparative data (e.g., 2017-W41 or a historical average) to identify the specific cause of the change.
+
+Therefore, the root cause of the performance change cannot be verified from the provided evidence alone.","SELECT
+    strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
+    COUNT(DISTINCT o.order_id) AS total_orders,
+    SUM(oi.price - p.unit_cost - oi.discount_amount) AS gross_profit,
+    AVG(oi.price) AS avg_price,
+    AVG(p.unit_cost) AS avg_unit_cost,
+    AVG(oi.discount_amount) AS avg_discount,
+    SUM(oi.freight_value) AS total_freight,
+    COUNT(DISTINCT CASE WHEN o.order_status = 'delivered' THEN o.order_id END) AS delivered_orders,
+    COUNT(DISTINCT CASE WHEN o.order_status = 'canceled' THEN o.order_id END) AS canceled_orders
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W42'
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,,
+30,80,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2018-W15, the data shows an average discount of 0.0. The query calculates gross profit as `price - unit_cost - discount_amount`. Since the discount is zero, the gross profit is driven entirely by the difference between the average price (128.27) and the average unit cost (76.93).
+
+However, the provided result set contains **only** the data for 2018-W15. It does not contain data for previous weeks or periods to compare against. Therefore, it is **impossible to determine why performance changed** based solely on this single row of data. A ""change"" implies a comparison between two points in time, and the second point (the baseline) is missing from the evidence.
+
+**Root Cause:** Insufficient data provided. The query result only contains the target week (2018-W15) and lacks the comparative baseline data required to identify the cause of any performance change.","SELECT
+    strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
+    COUNT(DISTINCT o.order_id) AS total_orders,
+    SUM(oi.price - p.unit_cost - oi.discount_amount) AS gross_profit,
+    AVG(oi.price) AS avg_price,
+    AVG(p.unit_cost) AS avg_unit_cost,
+    AVG(oi.discount_amount) AS avg_discount,
+    SUM(oi.freight_value) AS total_freight
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+WHERE o.order_status = 'delivered'
+  AND strftime('%Y-W%W', o.order_purchase_timestamp) = '2018-W15'
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,,,,8,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198263, Requested 4005. Please try again in 16m19.776s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198905, Requested 1445. Please try again in 2m31.2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
