@@ -1,4 +1,4 @@
-evaluation_case,scenario_id,ground_truth_cause,ground_truth_entity,ground_truth_dollar_impact,oneshot_answer,oneshot_sql,react_max_steps,react_answer,react_steps,react_query_count,multi_agent_analyst_steps,multi_agent_error,multi_agent_answer,multi_agent_audit_rounds,multi_agent_query_count
+evaluation_case,scenario_id,ground_truth_cause,ground_truth_entity,ground_truth_dollar_impact,oneshot_answer,oneshot_sql,react_max_steps,react_answer,react_steps,react_query_count,multi_agent_analyst_steps,multi_agent_answer,multi_agent_audit_rounds,multi_agent_query_count,multi_agent_error
 2,2,Wrong discount code,health_beauty,12434.28,"Root Cause: Excessive discounting.
 Affected Entity: Order items in 2017-W33.
 Evidence: The query results show that for the top 10 lowest-profit items, the `discount_amount` consistently exceeds the gross margin (calculated as `price` minus `unit_cost`). For example, in the first record, the gross margin is 638.94 (1597.35 - 958.41), but the discount is 1437.615, resulting in a negative item profit of -798.675. This pattern holds across all listed records, indicating that discounts were applied at levels that wiped out the profit margin, causing the sharp fall in profit.","SELECT
@@ -13,7 +13,13 @@ JOIN products p ON oi.product_id = p.product_id
 JOIN orders o ON oi.order_id = o.order_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W33'
 ORDER BY item_profit ASC
-LIMIT 10;",8,"The sharp profit drop in 2017-W33 was caused by an anomalous discount code ""PROMO_BUG"" that was applied to 85 order items only in that week. The average discount per item was approximately 146, which exceeded the typical profit margin (price minus unit cost), resulting in negative per-item profit for all 85 affected items. This isolated promotional error, present only in W33 and absent in all other weeks, drove the",5.0,4.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,
+LIMIT 10;",8,"The sharp profit drop in 2017-W33 was caused by an anomalous discount code ""PROMO_BUG"" that was applied to 85 order items only in that week. The average discount per item was approximately 146, which exceeded the typical profit margin (price minus unit cost), resulting in negative per-item profit for all 85 affected items. This isolated promotional error, present only in W33 and absent in all other weeks, drove the",5.0,4.0,8,"**Root Cause:** A sudden surge in promotional discounts applied to order items.
+
+**Affected Entity:** Order items in 2017-W33.
+
+**Supporting Explanation:** Data indicates that the base profit (revenue minus unit cost) remained stable at approximately 48.8k in 2017-W33, consistent with previous weeks. However, total discounts spiked to approximately 12.4k in this week, whereas they were zero in the preceding weeks (W30–W32). This direct deduction from revenue caused the gross profit to drop to approximately 36.4k.
+
+**Audit Status:** Passed.",1.0,2.0,
 5,5,Wrong discount code,computers_accessories,7853.63,"Root Cause: Excessive discounting.
 Affected Entity: Order items in 2017-W40.
 Evidence: The query results show that for every listed item, the `discount_amount` exceeds the gross margin (calculated as `price` minus `unit_cost`). This results in a negative `item_profit` for all displayed records, indicating that the discounts applied during this period were larger than the profit margin, directly causing the sharp fall in profit.","SELECT
@@ -27,7 +33,20 @@ FROM order_items oi
 JOIN orders o ON oi.order_id = o.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W40'
-ORDER BY item_profit ASC;",8,"The sharp profit drop in 2017-W40 was caused by a one-time promotional discount code ""PROMO_BUG"" that was applied to 62 order items during that week. This code generated a total discount of 7,412.814, which was the only week in the dataset where any discounts were applied (all surrounding weeks had zero discounts). The discount reduced gross profit from what would have been approximately 57,471 (matching the trend of adjacent weeks) down to 50,058, representing a roughly 13% decline. The affected entity is the 62 order line items in delivered orders from 2017-W40 that carried the ""PROMO_BUG"" discount code. The name ""PROMO_BUG"" suggests this may have been an unintended or erroneous promotional discount rather than a planned marketing campaign.",5.0,4.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,
+ORDER BY item_profit ASC;",8,"The sharp profit drop in 2017-W40 was caused by a one-time promotional discount code ""PROMO_BUG"" that was applied to 62 order items during that week. This code generated a total discount of 7,412.814, which was the only week in the dataset where any discounts were applied (all surrounding weeks had zero discounts). The discount reduced gross profit from what would have been approximately 57,471 (matching the trend of adjacent weeks) down to 50,058, representing a roughly 13% decline. The affected entity is the 62 order line items in delivered orders from 2017-W40 that carried the ""PROMO_BUG"" discount code. The name ""PROMO_BUG"" suggests this may have been an unintended or erroneous promotional discount rather than a planned marketing campaign.",5.0,4.0,8,"**Report: Investigation of 2017-W40 Profit Anomaly**
+
+**Status:** UNVERIFIED (Audit Failed)
+
+**Root Cause:**
+The premise that profit ""fell sharply"" in 2017-W40 is factually incorrect based on the provided data. While a specific discount code (""PROMO_BUG"") was applied to 62 order items during this week, the resulting gross profit remained within the normal range of variation compared to surrounding weeks.
+
+**Affected Entity:**
+Order items associated with discount code ""PROMO_BUG"" in 2017-W40.
+
+**Supporting Explanation:**
+1.  **Profit Trend:** The data shows gross profit for 2017-W40 was 50,058.45. This is higher than the preceding week (2017-W39: 56,117.81 is higher, but 2017-W38: 49,708.43 is lower) and significantly lower than the following weeks (2017-W41: 59,825.60; 2017-W42: 65,091.70). There is no evidence of a ""sharp fall"" relative to the immediate surrounding period; rather, profit was stable or trending upward.
+2.  **Discount Impact:** The ""PROMO_BUG"" code applied to 62 items resulted in a total discount of 7,412.81. While this reduced the gross profit for those specific items (making their contribution negative or low), the overall weekly gross profit did not drop sharply because the baseline profit from non-discounted items and the overall volume supported the total.
+3.  **Auditor Verdict:** The auditor explicitly failed the analyst's conclusion, stating that",1.0,5.0,
 8,8,Wrong discount code,housewares,9129.95,"Root Cause: Excessive discounting.
 Affected Entity: Multiple products (including IDs 5d08ef63cf250136d1e5d2ba85656a8c, d8f2a339e6fa69ebf411e198b618e979, and cfce05163d94540468fd6c92c62fa5db).
 
@@ -42,7 +61,7 @@ FROM order_items oi
 JOIN products p ON oi.product_id = p.product_id
 JOIN orders o ON oi.order_id = o.order_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2018-W09'
-ORDER BY item_profit ASC;",8,"The premise of the question is incorrect. The data shows that 2018-W09 did NOT experience a sharp fall in profit. In fact, 2018-W09 had the highest gross profit (92,471) and the highest net profit after freight (51,543) in the surrounding weeks (2018-W05 to 2018-W13). The week also had the highest order count (1,849) and a profit per order (50.01) that was in line with",6.0,5.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,
+ORDER BY item_profit ASC;",8,"The premise of the question is incorrect. The data shows that 2018-W09 did NOT experience a sharp fall in profit. In fact, 2018-W09 had the highest gross profit (92,471) and the highest net profit after freight (51,543) in the surrounding weeks (2018-W05 to 2018-W13). The week also had the highest order count (1,849) and a profit per order (50.01) that was in line with",6.0,5.0,8,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198676, Requested 2448. Please try again in 8m5.568s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
 11,11,Shipping delay,0015a82c2db000af6aaaf3ae2ecb0532,0.0,"The provided SQL result for 2017-W32 does not contain comparative data from other weeks or a baseline, making it impossible to verify a deterioration in delivery performance or margin based solely on this output. The query returns a single row with an average delivery time of 10.93 days and a gross margin of 40.48%, but without historical context or a control period, no root cause for a decline can be established from this evidence.","SELECT
     strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
     COUNT(o.order_id) AS total_orders,
@@ -56,7 +75,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W32'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199340, Requested 1391. Please try again in 5m15.792s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
 14,14,Shipping delay,02b72cdeb9cfcc429f1af6f4e3f3b737,0.0,"The provided SQL result for 2017-W35 does not contain comparative data from other weeks or a baseline, so it is impossible to verify a deterioration in delivery performance or margin based solely on this output. The query returns a single row with an average delivery time of approximately 10.96 days and a margin of approximately 39.11%, but without prior period data, no decline can be confirmed. Therefore, the root cause of any alleged deterioration cannot be established from the provided evidence.","SELECT
     strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
     COUNT(o.order_id) AS total_orders,
@@ -70,7 +89,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W35'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,"APIStatusError: Error code: 413 - {'error': {'message': 'Request too large for model `qwen/qwen3.8-27b` in organization `org_01m3nnnsbneg58eyr1p2s6p8n3` service tier `on_demand` on input tokens per minute (ITPM): Limit 7000, Requested 7772, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",,,
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199190, Requested 1096. Please try again in 2m3.552s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
 17,17,Shipping delay,056b4ada5bbc2c50cc7842547dda6b51,0.0,"The provided SQL result does not support the premise that delivery performance and margin deteriorated in 2017-W42. The data shows a high delivery rate (1,309 out of 1,340 orders), a low cancellation rate (4 orders), an average delivery time of approximately 11.2 days, and a positive gross margin of approximately 40.2%. Without comparative data from other weeks or a defined baseline for ""deterioration,"" the evidence does not verify any decline in performance or margin for this specific week.","SELECT
     strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
     COUNT(o.order_id) AS total_orders,
@@ -84,7 +103,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W42'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,ValueError: The LLM response contained neither FINAL ANSWER nor a valid action.,,,
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199039, Requested 1096. Please try again in 58.32s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
 20,20,Shipping delay,0761743cbffb25d7148189e9f1a5f03a,0.0,"The provided SQL result for 2018-W15 does not contain comparative data from other weeks or a baseline, making it impossible to verify a deterioration in delivery performance or margin based solely on this output. The query returns a single row with an average delivery time of approximately 11.37 days and a gross margin of approximately 40.02%, but without prior period data, no decline can be confirmed. Therefore, the root cause of any alleged deterioration cannot be established from the provided evidence.","SELECT
     strftime('%Y-W%W', o.order_purchase_timestamp) AS week,
     COUNT(o.order_id) AS total_orders,
@@ -104,7 +123,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2018-W15'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,"REPORT: 2018-W15 Performance Investigation
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,"REPORT: 2018-W15 Performance Investigation
 
 Status: UNVERIFIED / AUDIT FAILED
 
@@ -118,7 +137,7 @@ The auditor rejected the analyst's findings because the data does not support th
 2. Margin: Total gross profit increased from 91,012 in 2018-W14 to 93,075 in 2018-W15. While average unit cost and freight values showed slight increases, the overall gross profit metric improved.
 
 Conclusion:
-The investigation failed to identify a root cause for deterioration because the data indicates no deterioration occurred in the queried metrics. The analyst reached the step limit without providing a verified final answer, and the auditor confirmed the initial hypothesis was unsupported by the evidence.",1.0,8.0
+The investigation failed to identify a root cause for deterioration because the data indicates no deterioration occurred in the queried metrics. The analyst reached the step limit without providing a verified final answer, and the auditor confirmed the initial hypothesis was unsupported by the evidence.",1.0,8.0,
 23,73,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W34, the data shows a gross profit of 42,799.78, an average price of 101.57, and an average unit cost of 60.85. The average discount is 0.0, and there were 2 canceled orders out of 884 total.
 
 However, the query provided only retrieves data for the single week 2017-W34. It does not retrieve data for previous weeks or a baseline period to compare against. Therefore, it is impossible to determine *why* performance changed or to identify the root cause of any change using only this specific result set. The evidence provided is insufficient to support a conclusion about a change in performance because no comparative data is present.","SELECT
@@ -135,7 +154,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W34'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198002, Requested 4218. Please try again in 15m59.04s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",,,
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 198889, Requested 1148. Please try again in 15.984s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
 26,76,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2017-W41, the data shows a gross profit of 62,755.77, an average price of 129.77, and an average unit cost of 77.25. The average discount is 0.0, and there were 7 canceled orders out of 1,054 total orders.
 
 However, the query result only provides data for the single week 2017-W41. It does not provide comparative data for previous weeks or a baseline to determine what ""performance change"" refers to (e.g., increase or decrease in profit, order volume, or cancellation rate). Without a reference period or prior data points, it is impossible to verify the cause of any performance change from this single row of data.
@@ -156,7 +175,7 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2017-W41'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199764, Requested 1795. Please try again in 11m13.488s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",,,
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199555, Requested 1454. Please try again in 7m15.888s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
 29,79,No single cause (normal week-to-week noise),,0.0,"Based on the provided SQL result for 2018-W10, the data shows a gross profit of 91,090.21, an average price of 122.10, and an average unit cost of 73.26. The average discount is 0.0, and there were 5 canceled orders out of 1,638 total orders.
 
 However, the query and result provided **only contain data for the single week 2018-W10**. To determine why performance ""changed,"" a comparison against a baseline (such as the previous week, 2018-W09, or the same week in the previous year) is required. The provided evidence does not include comparative data, nor does it identify specific anomalies (such as a spike in cancellations, a drop in average price, or a change in product mix) relative to a prior period.
@@ -175,4 +194,4 @@ FROM orders o
 JOIN order_items oi ON o.order_id = oi.order_id
 JOIN products p ON oi.product_id = p.product_id
 WHERE strftime('%Y-W%W', o.order_purchase_timestamp) = '2018-W10'
-GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199613, Requested 997. Please try again in 4m23.52s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",,,
+GROUP BY strftime('%Y-W%W', o.order_purchase_timestamp);",8,The analyst reached the 8-step limit without a verified final answer.,8.0,8.0,8,,,,"RateLimitError: Error code: 429 - {'error': {'message': 'Rate limit reached for model `qwen/qwen3.8-27b` in organization `org_01m3np1xjbem3tkdzk2qgvvg70` service tier `on_demand` on tokens per day (TPD): Limit 200000, Used 199405, Requested 1148. Please try again in 3m58.896s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}"
